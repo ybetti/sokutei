@@ -7,9 +7,15 @@
     <style>
         canvas {
             border: 1px solid black;
+            margin-right: 20px; /* 画像とテキストの間にスペースを追加 */
         }
         #imageInput {
             margin-bottom: 10px;
+        }
+        #output {
+            display: inline-block;
+            vertical-align: top; /* 画像と縦に揃える */
+            margin-left: 20px; /* 画像との間隔 */
         }
     </style>
 </head>
@@ -19,8 +25,11 @@
     <input type="file" id="imageInput" accept="image/*">
     <button id="undoButton">一つ戻る</button>
     <p>一本目の線を1mmとして、二本目以降の線の長さを測定します。</p>
-    <canvas id="canvas"></canvas>
-    <p id="output"></p>
+
+    <div style="display: flex; align-items: center;">
+        <canvas id="canvas"></canvas>
+        <div id="output"></div>
+    </div>
 
     <script>
         const canvas = document.getElementById('canvas');
