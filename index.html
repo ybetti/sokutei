@@ -56,7 +56,7 @@
         // 線を引く
         canvas.addEventListener('mousedown', (e) => {
             isDrawing = true;
-            lines.push({ x: e.offsetX, y: e.offsetY });
+            lines.push({ x: e.offsetX, y: e.offsetY }); // 始点の追加
         });
 
         canvas.addEventListener('mouseup', (e) => {
@@ -102,6 +102,15 @@
             // 保存された線を再描画
             for (let i = 1; i < lines.length; i += 2) {
                 const { x1, y1, x2, y2 } = lines[i];
+
+                // 始点に目印（小さい円）を描画
+                ctx.beginPath();
+                ctx.arc(x1, y1, 5, 0, Math.PI * 2, true); // 半径5の円を描く
+                ctx.fillStyle = 'blue';  // 始点は青い円で表示
+                ctx.fill();
+                ctx.closePath();
+
+                // 線を描画
                 ctx.beginPath();
                 ctx.moveTo(x1, y1);
                 ctx.lineTo(x2, y2);
