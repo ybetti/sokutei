@@ -57,34 +57,34 @@
 
         // 線を引くための開始点（マウスダウン）
         canvas.addEventListener('mousedown', (e) => {
-            isDrawing = true;
-            startX = e.offsetX;
-            startY = e.offsetY;
-        });
+            if (isDrawing) {
+                // 終点を設定して線を引く
+                const endX = e.offsetX;
+                const endY = e.offsetY;
 
-        // 線を引く処理（マウスアップ）
-        canvas.addEventListener('mouseup', (e) => {
-            if (!isDrawing) return;
-            isDrawing = false;
+                const length = Math.sqrt(Math.pow(endX - startX, 2) + Math.pow(endY - startY, 2));
 
-            const endX = e.offsetX;
-            const endY = e.offsetY;
-            
-            const length = Math.sqrt(Math.pow(endX - startX, 2) + Math.pow(endY - startY, 2));
+                // 基準線(1mm)がまだ設定されていない場合、最初の線を基準とする
+                if (baseLineLength === null) {
+                    baseLineLength = length;
+                    output.innerHTML = `一本目の線を基準に設定しました。1mm = ${length.toFixed(2)}ピクセル`;
+                } else {
+                    const ratio = length / baseLineLength;
+                    output.innerHTML += `<br>線の長さ: ${ratio.toFixed(2)}mm (${length.toFixed(2)}ピクセル)`;
+                }
 
-            // 基準線(1mm)がまだ設定されていない場合、最初の線を基準とする
-            if (baseLineLength === null) {
-                baseLineLength = length;
-                output.innerHTML = `一本目の線を基準に設定しました。1mm = ${length.toFixed(2)}ピクセル`;
+                // 描画情報を保存（始点と終点を保存）
+                lines.push({ x1: startX, y1: startY, x2: endX, y2: endY });
+
+                redraw(); // 再描画
+
+                isDrawing = false; // 線の描画を終了
             } else {
-                const ratio = length / baseLineLength;
-                output.innerHTML += `<br>線の長さ: ${ratio.toFixed(2)}mm (${length.toFixed(2)}ピクセル)`;
+                // 始点を設定
+                startX = e.offsetX;
+                startY = e.offsetY;
+                isDrawing = true;
             }
-
-            // 描画情報を保存（始点と終点を保存）
-            lines.push({ x1: startX, y1: startY, x2: endX, y2: endY });
-
-            redraw(); // 再描画
         });
 
         // 1つ戻る機能
