@@ -173,7 +173,7 @@
             const midX = (startX + endX) / 2;
             const midY = (startY + endY) / 2;
             label.style.left = `${canvas.offsetLeft + midX}px`;
-            label.style.top = `${canvas.offsetTop + midY - 20}px`; // 線の上に表示
+            label.style.top = `${canvas.offsetTop + midY - 30}px`; // 線の上に表示（Y座標を調整）
 
             return label; // 作成したラベルを返す
         }
