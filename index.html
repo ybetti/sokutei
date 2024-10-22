@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>画像上の長さ測定</title>
+    <title>画像上の長さ測定(途中)</title>
     <style>
         canvas {
             border: 1px solid black;
@@ -28,12 +28,15 @@
     </style>
 </head>
 <body>
-    <h1>画像上の長さ測定</h1>
+    <h1>画像上の長さ測定(修正中)</h1>
     
     <input type="file" id="imageInput" accept="image/*">
     <button id="undoButton">一つ戻る</button>
     <button id="toggleModeButton">連続測定モード: オフ</button>
-    <p>一本目の線を1mmとして、二本目以降の線の長さを測定します。</p>
+    <p>クリックして始点と終点を決定します。</p>
+    <p>一本目の線を1mmが基準となり、二本目以降の線の長さを測定します。</p>
+    <p>連続測定モードを追加、モード中は合計の長さを計測出来ます。</p>
+    <p>始点と終点の●をなくしました。</p>
 
     <div style="display: flex; align-items: center;">
         <canvas id="canvas"></canvas>
