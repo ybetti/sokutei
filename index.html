@@ -7,15 +7,15 @@
     <style>
         canvas {
             border: 1px solid black;
-            margin-right: 20px; /* 画像とテキストの間にスペースを追加 */
+            margin-right: 20px;
         }
         #imageInput {
             margin-bottom: 10px;
         }
         #output {
             display: inline-block;
-            vertical-align: top; /* 画像と縦に揃える */
-            margin-left: 20px; /* 画像との間隔 */
+            vertical-align: top;
+            margin-left: 20px;
         }
         .length-label {
             position: absolute;
@@ -56,7 +56,7 @@
         let labels = [];
         let baseLineLength = null;
         let totalLength = 0;
-        let isContinuousMode = false; // 連続測定モード
+        let isContinuousMode = false;
 
         // 画像が選択されたときに表示する
         imageInput.addEventListener('change', (event) => {
@@ -85,16 +85,15 @@
 
                 const length = Math.sqrt(Math.pow(endX - startX, 2) + Math.pow(endY - startY, 2));
 
-                // 基準線(1mm)がまだ設定されていない場合、最初の線を基準とする
                 if (baseLineLength === null) {
                     baseLineLength = length;
                     output.innerHTML = `一本目の線を基準に設定しました。1mm = ${length.toFixed(2)}ピクセル`;
                 } else {
                     const ratio = length / baseLineLength;
-                    
-                    // 連続測定モードがオンの場合、合計長さを更新して表示
+                    totalLength += ratio;
+
+                    // 連続測定モードの時、合計長さも線上に表示
                     if (isContinuousMode) {
-                        totalLength += ratio;
                         output.innerHTML = `線の長さ: ${ratio.toFixed(2)}mm (${length.toFixed(2)}ピクセル)<br>合計長さ: ${totalLength.toFixed(2)}mm`;
                     } else {
                         output.innerHTML = `線の長さ: ${ratio.toFixed(2)}mm (${length.toFixed(2)}ピクセル)`;
@@ -104,10 +103,11 @@
                 // 描画情報を保存
                 lines.push({ x1: startX, y1: startY, x2: endX, y2: endY, length: length });
 
-                const label = createLengthLabel(startX, startY, endX, endY, length);
-                labels.push(label); // ラベルを保存
+                // 線の長さと合計長さをラベルとして追加
+                const label = createLengthLabel(startX, startY, endX, endY, length, totalLength);
+                labels.push(label);
 
-                redraw(); // 再描画
+                redraw();
 
                 isDrawing = false;
             } else {
@@ -126,10 +126,10 @@
         // 1つ戻る機能
         undoButton.addEventListener('click', () => {
             if (lines.length > 0) {
-                const lastLine = lines.pop();  
-                const lastLabel = labels.pop(); 
+                const lastLine = lines.pop();
+                const lastLabel = labels.pop();
                 if (lastLabel) {
-                    lastLabel.remove(); 
+                    lastLabel.remove();
                 }
                 if (isContinuousMode && lastLine) {
                     totalLength -= lastLine.length / baseLineLength;
@@ -180,11 +180,14 @@
         }
 
         // 長さラベルを作成する関数
-        function createLengthLabel(startX, startY, endX, endY, length) {
+        function createLengthLabel(startX, startY, endX, endY, length, totalLength) {
             const ratio = baseLineLength === null ? 0 : length / baseLineLength;
             const label = document.createElement('div');
             label.className = 'length-label';
-            label.innerText = `${ratio.toFixed(2)}mm`;
+            
+            // 線の長さと合計長さの表示
+            label.innerText = `線: ${ratio.toFixed(2)}mm 合計: ${totalLength.toFixed(2)}mm`;
+
             document.body.appendChild(label);
 
             const midX = (startX + endX) / 2;
