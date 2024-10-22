@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>画像測定ツール</title>
+    <style>
+        #image-container {
+            position: relative;
+        }
+        #image-container img {
+            width: 100%;
+            height: auto;
+        }
+        .line {
+            position: absolute;
+            background-color: red;
+            height: 2px;
+        }
+    </style>
+</head>
+<body>
+    <div id="image-container">
+        <img id="image" src="your-image-url.jpg" alt="測定画像">
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
