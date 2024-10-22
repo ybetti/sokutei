@@ -28,7 +28,7 @@
     </style>
 </head>
 <body>
-    <h1>画像上の長さ測定プログラム2</h1>
+    <h1>画像上の長さ測定プログラム</h1>
     
     <input type="file" id="imageInput" accept="image/*">
     <button id="undoButton">一つ戻る</button>
@@ -51,6 +51,7 @@
         let startX = null;
         let startY = null;
         let lines = [];
+        let labels = []; // ラベルを保存する配列
         let baseLineLength = null;
 
         // 画像が選択されたときに表示する
@@ -93,8 +94,10 @@
                 // 描画情報を保存（始点と終点を保存）
                 lines.push({ x1: startX, y1: startY, x2: endX, y2: endY, length: length });
 
+                const label = createLengthLabel(startX, startY, endX, endY, length);
+                labels.push(label); // ラベルを保存
+
                 redraw(); // 再描画
-                createLengthLabel(startX, startY, endX, endY, length); // 長さラベルを作成
 
                 isDrawing = false; // 線の描画を終了
             } else {
@@ -116,6 +119,10 @@
         undoButton.addEventListener('click', () => {
             if (lines.length > 0) {
                 lines.pop();  // 最後に描いた線を削除
+                const label = labels.pop(); // 最後のラベルを削除
+                if (label) {
+                    label.remove(); // DOMからラベルを削除
+                }
                 redraw();
                 output.innerHTML = "最後の線を取り消しました。";
             }
@@ -159,14 +166,16 @@
             const ratio = baseLineLength === null ? 0 : length / baseLineLength;
             const label = document.createElement('div');
             label.className = 'length-label';
-            label.innerText = `${ratio.toFixed(2)}mm`;
+            label.innerText = `長さ: ${ratio.toFixed(2)}mm (${length.toFixed(2)}ピクセル)`;
             document.body.appendChild(label);
 
             // ラベルの位置を計算して設定
-            const midX = (startX + endX) / 1.5;
-            const midY = (startY + endY) / 1.5;
+            const midX = (startX + endX) / 2;
+            const midY = (startY + endY) / 2;
             label.style.left = `${canvas.offsetLeft + midX}px`;
-            label.style.top = `${canvas.offsetTop + midY - 25}px`; // 線の上に表示
+            label.style.top = `${canvas.offsetTop + midY - 20}px`; // 線の上に表示
+
+            return label; // 作成したラベルを返す
         }
     </script>
 </body>
