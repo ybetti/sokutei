@@ -91,12 +91,13 @@
                     output.innerHTML = `一本目の線を基準に設定しました。1mm = ${length.toFixed(2)}ピクセル`;
                 } else {
                     const ratio = length / baseLineLength;
-                    output.innerHTML += `<br>線の長さ: ${ratio.toFixed(2)}mm (${length.toFixed(2)}ピクセル)`;
-
-                    // 連続測定モードがオンの場合、合計長さを計算
+                    
+                    // 連続測定モードがオンの場合、合計長さを更新して表示
                     if (isContinuousMode) {
                         totalLength += ratio;
-                        output.innerHTML += `<br>合計長さ: ${totalLength.toFixed(2)}mm`;
+                        output.innerHTML = `線の長さ: ${ratio.toFixed(2)}mm (${length.toFixed(2)}ピクセル)<br>合計長さ: ${totalLength.toFixed(2)}mm`;
+                    } else {
+                        output.innerHTML = `線の長さ: ${ratio.toFixed(2)}mm (${length.toFixed(2)}ピクセル)`;
                     }
                 }
 
