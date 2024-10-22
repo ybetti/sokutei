@@ -6,6 +6,19 @@ document.getElementById('image-container').addEventListener('mousedown', startDr
 document.getElementById('image-container').addEventListener('mousemove', drawLine);
 document.getElementById('image-container').addEventListener('mouseup', endDrawing);
 
+document.getElementById('uploadButton').addEventListener('click', function() {
+    document.getElementById('fileInput').click();
+});
+
+document.getElementById('fileInput').addEventListener('change', function(e) {
+    const file = e.target.files;
+    const reader = new FileReader();
+    reader.onload = function(event) {
+        document.getElementById('selectedImage').src = event.target.result;
+    };
+    reader.readAsDataURL(file);
+});
+
 // 線の描画を開始
 function startDrawing(e) {
     const rect = e.target.getBoundingClientRect();
