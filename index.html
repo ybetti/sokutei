@@ -94,9 +94,9 @@
 
                     // 連続測定モードの時、合計長さも線上に表示
                     if (isContinuousMode) {
-                        output.innerHTML = `線の長さ: ${ratio.toFixed(2)}mm (${length.toFixed(2)}ピクセル)<br>合計長さ: ${totalLength.toFixed(2)}mm`;
+                        output.innerHTML = `長さ: ${totalLength.toFixed(2)}mm`;
                     } else {
-                        output.innerHTML = `線の長さ: ${ratio.toFixed(2)}mm (${length.toFixed(2)}ピクセル)`;
+                        output.innerHTML = `長さ: ${ratio.toFixed(2)}mm`;
                     }
                 }
 
@@ -116,7 +116,7 @@
                 isDrawing = true;
 
                 ctx.beginPath();
-                ctx.arc(startX, startY, 5, 0, Math.PI * 2, true); // 半径5の円を描く
+                ctx.arc(startX, startY, 0, 0, Math.PI * 2, true); // 半径5の円を描く(最初の0)
                 ctx.fillStyle = 'blue';  
                 ctx.fill();
                 ctx.closePath();
@@ -158,7 +158,7 @@
 
             lines.forEach(line => {
                 ctx.beginPath();
-                ctx.arc(line.x1, line.y1, 4, 0, Math.PI * 2, true);
+                ctx.arc(line.x1, line.y1, 0, 0, Math.PI * 2, true);
                 ctx.fillStyle = 'blue';  
                 ctx.fill();
                 ctx.closePath();
@@ -172,7 +172,7 @@
                 ctx.closePath();
 
                 ctx.beginPath();
-                ctx.arc(line.x2, line.y2, 4, 0, Math.PI * 2, true);
+                ctx.arc(line.x2, line.y2, 0, 0, Math.PI * 2, true);
                 ctx.fillStyle = 'green';  
                 ctx.fill();
                 ctx.closePath();
