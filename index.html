@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>画像上の長さ測定</title>
+    <title>画像上の長さ測定２</title>
     <style>
         canvas {
             border: 1px solid black;
@@ -118,6 +118,13 @@
                 ctx.strokeStyle = 'red';
                 ctx.lineWidth = 2;
                 ctx.stroke();
+                ctx.closePath();
+
+                // 終点に目印（小さい円）を描画
+                ctx.beginPath();
+                ctx.arc(line.x2, line.y2, 5, 0, Math.PI * 2, true); // 半径5の円を描く
+                ctx.fillStyle = 'green';  // 終点は緑の円で表示
+                ctx.fill();
                 ctx.closePath();
             });
         }
