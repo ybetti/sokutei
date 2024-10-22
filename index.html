@@ -17,6 +17,7 @@
     <h1>画像上の長さ測定プログラム</h1>
     
     <input type="file" id="imageInput" accept="image/*">
+    <button id="undoButton">一つ戻る</button>
     <p>一本目の線を1mmとして、二本目以降の線の長さを測定します。</p>
     <canvas id="canvas"></canvas>
     <p id="output"></p>
@@ -26,7 +27,8 @@
         const ctx = canvas.getContext('2d');
         const imageInput = document.getElementById('imageInput');
         const output = document.getElementById('output');
-        
+        const undoButton = document.getElementById('undoButton');
+
         let image = new Image();
         let isDrawing = false;
         let lines = [];
@@ -48,7 +50,7 @@
         image.onload = () => {
             canvas.width = image.width;
             canvas.height = image.height;
-            ctx.drawImage(image, 0, 0);
+            redraw();
         };
 
         // 線を引く
@@ -77,15 +79,38 @@
                 output.innerHTML += `<br>線の長さ: ${ratio.toFixed(2)}mm (${length.toFixed(2)}ピクセル)`;
             }
 
-            // 描画する
-            ctx.beginPath();
-            ctx.moveTo(x1, y1);
-            ctx.lineTo(x2, y2);
-            ctx.strokeStyle = 'red';
-            ctx.lineWidth = 2;
-            ctx.stroke();
-            ctx.closePath();
+            // 描画情報を保存
+            lines.push({ x1, y1, x2, y2, length });
+            redraw();
         });
+
+        // 1つ戻る機能
+        undoButton.addEventListener('click', () => {
+            if (lines.length > 0) {
+                lines.pop();  // 最後に描いた線を削除
+                redraw();
+                output.innerHTML = "最後の線を取り消しました。";
+            }
+        });
+
+        // 再描画関数
+        function redraw() {
+            // キャンバスをクリアして画像を再描画
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.drawImage(image, 0, 0);
+
+            // 保存された線を再描画
+            for (let i = 1; i < lines.length; i += 2) {
+                const { x1, y1, x2, y2 } = lines[i];
+                ctx.beginPath();
+                ctx.moveTo(x1, y1);
+                ctx.lineTo(x2, y2);
+                ctx.strokeStyle = 'red';
+                ctx.lineWidth = 2;
+                ctx.stroke();
+                ctx.closePath();
+            }
+        }
     </script>
 </body>
 </html>
