@@ -28,7 +28,7 @@
     </style>
 </head>
 <body>
-    <h1>画像上の長さ測定（修正中）</h1>
+    <h1>画像上の長さ測定</h1>
     
     <input type="file" id="imageInput" accept="image/*">
     <button id="undoButton">一つ戻る</button>
@@ -116,7 +116,7 @@
                 isDrawing = true;
 
                 ctx.beginPath();
-                ctx.arc(startX, startY, 0, 0, Math.PI * 2, true); // 半径5の円を描く(最初の0)
+                ctx.arc(startX, startY, 5, 0, Math.PI * 2, true); // 半径5の円を描く
                 ctx.fillStyle = 'blue';  
                 ctx.fill();
                 ctx.closePath();
@@ -158,7 +158,7 @@
 
             lines.forEach(line => {
                 ctx.beginPath();
-                ctx.arc(line.x1, line.y1, 0, 0, Math.PI * 2, true); // 半径5の円を描く(最初の0)
+                ctx.arc(line.x1, line.y1, 4, 0, Math.PI * 2, true);
                 ctx.fillStyle = 'blue';  
                 ctx.fill();
                 ctx.closePath();
@@ -172,7 +172,7 @@
                 ctx.closePath();
 
                 ctx.beginPath();
-                ctx.arc(line.x2, line.y2, 0, 0, Math.PI * 2, true); // 半径5の円を描く(最初の0)
+                ctx.arc(line.x2, line.y2, 4, 0, Math.PI * 2, true);
                 ctx.fillStyle = 'green';  
                 ctx.fill();
                 ctx.closePath();
