@@ -14,7 +14,7 @@
     </style>
 </head>
 <body>
-    <h1>画像上の長さ測定プログラム</h1>
+    <h1>画像上の長さを測定</h1>
     
     <input type="file" id="imageInput" accept="image/*">
     <button id="undoButton">一つ戻る</button>
@@ -31,6 +31,8 @@
 
         let image = new Image();
         let isDrawing = false;
+        let startX = null;
+        let startY = null;
         let lines = [];
         let baseLineLength = null;
 
@@ -53,22 +55,22 @@
             redraw();
         };
 
-        // 線を引く
+        // 線を引くための開始点（マウスダウン）
         canvas.addEventListener('mousedown', (e) => {
             isDrawing = true;
-            lines.push({ x: e.offsetX, y: e.offsetY }); // 始点の追加
+            startX = e.offsetX;
+            startY = e.offsetY;
         });
 
+        // 線を引く処理（マウスアップ）
         canvas.addEventListener('mouseup', (e) => {
             if (!isDrawing) return;
             isDrawing = false;
 
-            const x1 = lines[lines.length - 2].x;
-            const y1 = lines[lines.length - 2].y;
-            const x2 = e.offsetX;
-            const y2 = e.offsetY;
+            const endX = e.offsetX;
+            const endY = e.offsetY;
             
-            const length = Math.sqrt(Math.pow(x2 - x1, 2) + Math.pow(y2 - y1, 2));
+            const length = Math.sqrt(Math.pow(endX - startX, 2) + Math.pow(endY - startY, 2));
 
             // 基準線(1mm)がまだ設定されていない場合、最初の線を基準とする
             if (baseLineLength === null) {
@@ -79,9 +81,17 @@
                 output.innerHTML += `<br>線の長さ: ${ratio.toFixed(2)}mm (${length.toFixed(2)}ピクセル)`;
             }
 
-            // 描画情報を保存
-            lines.push({ x1, y1, x2, y2, length });
-            redraw();
+            // 描画情報を保存（始点と終点を保存）
+            lines.push({ x1: startX, y1: startY, x2: endX, y2: endY });
+
+            // 始点に目印（小さい円）を描画
+            ctx.beginPath();
+            ctx.arc(startX, startY, 5, 0, Math.PI * 2, true); // 半径5の円を描く
+            ctx.fillStyle = 'blue';  // 始点は青い円で表示
+            ctx.fill();
+            ctx.closePath();
+
+            redraw(); // 再描画
         });
 
         // 1つ戻る機能
@@ -100,25 +110,23 @@
             ctx.drawImage(image, 0, 0);
 
             // 保存された線を再描画
-            for (let i = 1; i < lines.length; i += 2) {
-                const { x1, y1, x2, y2 } = lines[i];
-
+            lines.forEach(line => {
                 // 始点に目印（小さい円）を描画
                 ctx.beginPath();
-                ctx.arc(x1, y1, 5, 0, Math.PI * 2, true); // 半径5の円を描く
+                ctx.arc(line.x1, line.y1, 5, 0, Math.PI * 2, true); // 半径5の円を描く
                 ctx.fillStyle = 'blue';  // 始点は青い円で表示
                 ctx.fill();
                 ctx.closePath();
 
                 // 線を描画
                 ctx.beginPath();
-                ctx.moveTo(x1, y1);
-                ctx.lineTo(x2, y2);
+                ctx.moveTo(line.x1, line.y1);
+                ctx.lineTo(line.x2, line.y2);
                 ctx.strokeStyle = 'red';
                 ctx.lineWidth = 2;
                 ctx.stroke();
                 ctx.closePath();
-            }
+            });
         }
     </script>
 </body>
