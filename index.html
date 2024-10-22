@@ -3,29 +3,89 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>画像選択と表示</title>
+    <title>画像上の長さ測定</title>
     <style>
-        #fileInput {
-            display: none;
+        canvas {
+            border: 1px solid black;
         }
-        #uploadButton {
-            background-image: url('upload-button.png');
-            background-size: cover;
-            width: 100px;
-            height: 50px;
-            border: none;
-            cursor: pointer;
+        #imageInput {
+            margin-bottom: 10px;
         }
     </style>
 </head>
 <body>
+    <h1>画像上の長さ測定プログラム</h1>
+    
+    <input type="file" id="imageInput" accept="image/*">
+    <p>一本目の線を1mmとして、二本目以降の線の長さを測定します。</p>
+    <canvas id="canvas"></canvas>
+    <p id="output"></p>
 
-<div>
-    <input type="file" id="fileInput" accept="image/*">
-    <button id="uploadButton">画像を選択</button>
-    <img id="selectedImage" src="" alt="選択された画像" style="max-width: 100%; max-height: 100%;">
-</div>
+    <script>
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        const imageInput = document.getElementById('imageInput');
+        const output = document.getElementById('output');
+        
+        let image = new Image();
+        let isDrawing = false;
+        let lines = [];
+        let baseLineLength = null;
 
-<script src="script.js"></script>
+        // 画像が選択されたときに表示する
+        imageInput.addEventListener('change', (event) => {
+            const file = event.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function (e) {
+                    image.src = e.target.result;
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+
+        // 画像をCanvasに描画する
+        image.onload = () => {
+            canvas.width = image.width;
+            canvas.height = image.height;
+            ctx.drawImage(image, 0, 0);
+        };
+
+        // 線を引く
+        canvas.addEventListener('mousedown', (e) => {
+            isDrawing = true;
+            lines.push({ x: e.offsetX, y: e.offsetY });
+        });
+
+        canvas.addEventListener('mouseup', (e) => {
+            if (!isDrawing) return;
+            isDrawing = false;
+
+            const x1 = lines[lines.length - 2].x;
+            const y1 = lines[lines.length - 2].y;
+            const x2 = e.offsetX;
+            const y2 = e.offsetY;
+            
+            const length = Math.sqrt(Math.pow(x2 - x1, 2) + Math.pow(y2 - y1, 2));
+
+            // 基準線(1mm)がまだ設定されていない場合、最初の線を基準とする
+            if (baseLineLength === null) {
+                baseLineLength = length;
+                output.innerHTML = `一本目の線を基準に設定しました。1mm = ${length.toFixed(2)}ピクセル`;
+            } else {
+                const ratio = length / baseLineLength;
+                output.innerHTML += `<br>線の長さ: ${ratio.toFixed(2)}mm (${length.toFixed(2)}ピクセル)`;
+            }
+
+            // 描画する
+            ctx.beginPath();
+            ctx.moveTo(x1, y1);
+            ctx.lineTo(x2, y2);
+            ctx.strokeStyle = 'red';
+            ctx.lineWidth = 2;
+            ctx.stroke();
+            ctx.closePath();
+        });
+    </script>
 </body>
 </html>
