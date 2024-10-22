@@ -14,7 +14,7 @@
     </style>
 </head>
 <body>
-    <h1>画像上の長さを測定</h1>
+    <h1>画像上の長さ測定プログラム</h1>
     
     <input type="file" id="imageInput" accept="image/*">
     <button id="undoButton">一つ戻る</button>
@@ -83,13 +83,6 @@
 
             // 描画情報を保存（始点と終点を保存）
             lines.push({ x1: startX, y1: startY, x2: endX, y2: endY });
-
-            // 始点に目印（小さい円）を描画
-            ctx.beginPath();
-            ctx.arc(startX, startY, 5, 0, Math.PI * 2, true); // 半径5の円を描く
-            ctx.fillStyle = 'blue';  // 始点は青い円で表示
-            ctx.fill();
-            ctx.closePath();
 
             redraw(); // 再描画
         });
