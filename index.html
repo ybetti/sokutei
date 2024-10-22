@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>画像上の長さ測定3</title>
+    <title>画像上の長さ測定</title>
     <style>
         canvas {
             border: 1px solid black;
@@ -16,6 +16,14 @@
             display: inline-block;
             vertical-align: top; /* 画像と縦に揃える */
             margin-left: 20px; /* 画像との間隔 */
+        }
+        .length-label {
+            position: absolute;
+            color: white;
+            background-color: black;
+            padding: 2px 5px;
+            border-radius: 3px;
+            font-size: 12px;
         }
     </style>
 </head>
@@ -83,9 +91,10 @@
                 }
 
                 // 描画情報を保存（始点と終点を保存）
-                lines.push({ x1: startX, y1: startY, x2: endX, y2: endY });
+                lines.push({ x1: startX, y1: startY, x2: endX, y2: endY, length: length });
 
                 redraw(); // 再描画
+                createLengthLabel(startX, startY, endX, endY, length); // 長さラベルを作成
 
                 isDrawing = false; // 線の描画を終了
             } else {
@@ -143,6 +152,21 @@
                 ctx.fill();
                 ctx.closePath();
             });
+        }
+
+        // 長さラベルを作成する関数
+        function createLengthLabel(startX, startY, endX, endY, length) {
+            const ratio = baseLineLength === null ? 0 : length / baseLineLength;
+            const label = document.createElement('div');
+            label.className = 'length-label';
+            label.innerText = `長さ: ${ratio.toFixed(2)}mm (${length.toFixed(2)}ピクセル)`;
+            document.body.appendChild(label);
+
+            // ラベルの位置を計算して設定
+            const midX = (startX + endX) / 2;
+            const midY = (startY + endY) / 2;
+            label.style.left = `${canvas.offsetLeft + midX}px`;
+            label.style.top = `${canvas.offsetTop + midY - 20}px`; // 線の上に表示
         }
     </script>
 </body>
