@@ -28,7 +28,7 @@
     </style>
 </head>
 <body>
-    <h1>画像上の長さ測定プログラム</h1>
+    <h1>画像上の長さ測定</h1>
     
     <input type="file" id="imageInput" accept="image/*">
     <button id="undoButton">一つ戻る</button>
@@ -166,14 +166,14 @@
             const ratio = baseLineLength === null ? 0 : length / baseLineLength;
             const label = document.createElement('div');
             label.className = 'length-label';
-            label.innerText = `長さ: ${ratio.toFixed(2)}mm (${length.toFixed(2)}ピクセル)`;
+            label.innerText = `${ratio.toFixed(2)}mm`;
             document.body.appendChild(label);
 
             // ラベルの位置を計算して設定
-            const midX = (startX + endX) / 2;
-            const midY = (startY + endY) / 2;
+            const midX = (startX + endX) / 2.5;
+            const midY = (startY + endY) / 2.5;
             label.style.left = `${canvas.offsetLeft + midX}px`;
-            label.style.top = `${canvas.offsetTop + midY - 20}px`; // 線の上に表示
+            label.style.top = `${canvas.offsetTop + midY - 25}px`; // 線の上に表示
 
             return label; // 作成したラベルを返す
         }
