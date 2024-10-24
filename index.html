@@ -33,9 +33,13 @@
     
     <input type="file" id="imageInput" accept="image/*">
     <button id="undoButton">一つ戻る</button>
-    <button id="toggleModeButton">連続測定モード: オン</button>
-    <p>一本目の線を1mmとして、二本目以降の線の長さを測定します。</p>
-
+    <button id="toggleModeButton">リセット</button>
+    <p>クリックして始点と終点を決定します。</p>
+    <p>一本目の線が基準の1mmとなり、二本目以降の線の長さを測定します。</p>
+    <p>連続測定モードを追加、モード中は合計の長さを計測出来ます。</p>
+    <p>始点と終点の●をなくしました。</p>
+    <p>ラベルをドラッグできるようにしました。</p>
+    <p>※仕様変更　不連続部に線を引くときにはリセットボタンを二回クリックして数値を初期化してください。</p>
     <div style="display: flex; align-items: center;">
         <canvas id="canvas"></canvas>
         <div id="output"></div>
@@ -100,9 +104,9 @@
                     totalLength += ratio;
 
                     if (isContinuousMode) {
-                        output.innerHTML = `線の長さ: ${ratio.toFixed(2)}mm (${length.toFixed(2)}ピクセル)<br>合計長さ: ${totalLength.toFixed(2)}mm`;
+                        output.innerHTML = `線の長さ: ${ratio.toFixed(2)}mm <br>合計長さ: ${totalLength.toFixed(2)}mm`;
                     } else {
-                        output.innerHTML = `線の長さ: ${ratio.toFixed(2)}mm (${length.toFixed(2)}ピクセル)`;
+                        output.innerHTML = `線の長さ: ${ratio.toFixed(2)}mm`;
                     }
                 }
 
@@ -150,10 +154,10 @@
         // 連続測定モードの切り替え
         toggleModeButton.addEventListener('click', () => {
             isContinuousMode = !isContinuousMode;
-            toggleModeButton.textContent = `連続測定モード: ${isContinuousMode ? 'オン' : 'オフ'}`;
+            toggleModeButton.textContent = `リセット: ${isContinuousMode ? '1' : '2'}`;
             if (!isContinuousMode) {
                 totalLength = 0;
-                output.innerHTML += `<br>連続測定モードをオフにしました。合計長さがリセットされました。`;
+                output.innerHTML += `<br>合計長さがリセットされました。`;
             }
         });
 
@@ -164,7 +168,7 @@
 
             lines.forEach(line => {
                 ctx.beginPath();
-                ctx.arc(line.x1, line.y1, 4, 0, Math.PI * 2, true);
+                ctx.arc(line.x1, line.y1, 0, 0, Math.PI * 2, true);
                 ctx.fillStyle = 'blue';  
                 ctx.fill();
                 ctx.closePath();
@@ -178,7 +182,7 @@
                 ctx.closePath();
 
                 ctx.beginPath();
-                ctx.arc(line.x2, line.y2, 4, 0, Math.PI * 2, true);
+                ctx.arc(line.x2, line.y2, 0, 0, Math.PI * 2, true);
                 ctx.fillStyle = 'green';  
                 ctx.fill();
                 ctx.closePath();
