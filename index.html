@@ -104,9 +104,9 @@
                     totalLength += ratio;
 
                     if (isContinuousMode) {
-                        output.innerHTML = `線の長さ: ${ratio.toFixed(2)}mm <br>合計長さ: ${totalLength.toFixed(2)}mm`;
+                        output.innerHTML = `長さ: ${totalLength.toFixed(2)}mm`;
                     } else {
-                        output.innerHTML = `線の長さ: ${ratio.toFixed(2)}mm`;
+                        output.innerHTML = `長さ: ${ratio.toFixed(2)}mm`;
                     }
                 }
 
@@ -194,7 +194,7 @@
             const ratio = baseLineLength === null ? 0 : length / baseLineLength;
             const label = document.createElement('div');
             label.className = 'length-label';
-            label.innerText = `線: ${ratio.toFixed(2)}mm 合計: ${totalLength.toFixed(2)}mm`;
+            label.innerText = `長さ: ${totalLength.toFixed(2)}mm`;
 
             document.body.appendChild(label);
 
