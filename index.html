@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>画像上の長さ測定(途中)</title>
+    <title>画像上の長さ測定(ドラッグ修正中)</title>
     <style>
         canvas {
             border: 1px solid black;
@@ -24,6 +24,7 @@
             padding: 2px 5px;
             border-radius: 3px;
             font-size: 12px;
+            cursor: move; /* ドラッグ可能にするためのスタイル */
         }
     </style>
 </head>
@@ -95,7 +96,6 @@
                     const ratio = length / baseLineLength;
                     totalLength += ratio;
 
-                    // 連続測定モードの時、合計長さも線上に表示
                     if (isContinuousMode) {
                         output.innerHTML = `長さ: ${totalLength.toFixed(2)}mm`;
                     } else {
@@ -117,12 +117,6 @@
                 startX = e.offsetX;
                 startY = e.offsetY;
                 isDrawing = true;
-
-                ctx.beginPath();
-                ctx.arc(startX, startY, 0, 0, Math.PI * 2, true); // 半径5の円を描く(最初の0)
-                ctx.fillStyle = 'blue';  
-                ctx.fill();
-                ctx.closePath();
             }
         });
 
@@ -182,13 +176,10 @@
             });
         }
 
-        // 長さラベルを作成する関数
+        // 長さラベルを作成する関数（ドラッグ可能）
         function createLengthLabel(startX, startY, endX, endY, length, totalLength) {
-            const ratio = baseLineLength === null ? 0 : length / baseLineLength;
             const label = document.createElement('div');
             label.className = 'length-label';
-            
-            // 線の長さと合計長さの表示
             label.innerText = `${totalLength.toFixed(2)}mm`;
 
             document.body.appendChild(label);
@@ -197,6 +188,33 @@
             const midY = (startY + endY) / 2;
             label.style.left = `${canvas.offsetLeft + midX}px`;
             label.style.top = `${canvas.offsetTop + midY - 20}px`;
+
+            let isDragging = false;
+            let offsetX, offsetY;
+
+            // ドラッグ開始
+            label.addEventListener('mousedown', (e) => {
+                isDragging = true;
+                offsetX = e.clientX - label.offsetLeft;
+                offsetY = e.clientY - label.offsetTop;
+                label.style.cursor = 'grabbing';
+            });
+
+            // ドラッグ中
+            document.addEventListener('mousemove', (e) => {
+                if (isDragging) {
+                    label.style.left = `${e.clientX - offsetX}px`;
+                    label.style.top = `${e.clientY - offsetY}px`;
+                }
+            });
+
+            // ドラッグ終了
+            document.addEventListener('mouseup', () => {
+                if (isDragging) {
+                    isDragging = false;
+                    label.style.cursor = 'move';
+                }
+            });
 
             return label;
         }
