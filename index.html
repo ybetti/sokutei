@@ -24,7 +24,7 @@
             padding: 2px 5px;
             border-radius: 3px;
             font-size: 12px;
-            cursor: move;
+            cursor: move; /* ドラッグを示すカーソル */
         }
     </style>
 </head>
@@ -64,7 +64,7 @@
         let isDragging = false;
         let dragOffsetX = 0;
         let dragOffsetY = 0;
-        let draggedLabel = null;
+        let currentLabel = null;
 
         // 画像が選択されたときに表示する
         imageInput.addEventListener('change', (event) => {
@@ -100,6 +100,7 @@
                     const ratio = length / baseLineLength;
                     totalLength += ratio;
 
+                    // 連続測定モードの時、合計長さも線上に表示
                     if (isContinuousMode) {
                         output.innerHTML = `長さ: ${totalLength.toFixed(2)}mm`;
                     } else {
@@ -107,8 +108,10 @@
                     }
                 }
 
+                // 描画情報を保存
                 lines.push({ x1: startX, y1: startY, x2: endX, y2: endY, length: length });
 
+                // 線の長さと合計長さをラベルとして追加
                 const label = createLengthLabel(startX, startY, endX, endY, length, totalLength);
                 labels.push(label);
 
@@ -121,7 +124,7 @@
                 isDrawing = true;
 
                 ctx.beginPath();
-                ctx.arc(startX, startY, 0, 0, Math.PI * 2, true);
+                ctx.arc(startX, startY, 0, 0, Math.PI * 2, true); 
                 ctx.fillStyle = 'blue';  
                 ctx.fill();
                 ctx.closePath();
@@ -200,24 +203,24 @@
             label.style.left = `${canvas.offsetLeft + midX}px`;
             label.style.top = `${canvas.offsetTop + midY - 20}px`;
 
-            // ラベルのドラッグ機能を追加
+            // ドラッグ用のイベントリスナーを追加
             label.addEventListener('mousedown', (e) => {
                 isDragging = true;
-                dragOffsetX = e.clientX - label.getBoundingClientRect().left;
-                dragOffsetY = e.clientY - label.getBoundingClientRect().top;
-                draggedLabel = label;
+                currentLabel = label;
+                dragOffsetX = e.clientX - label.offsetLeft;
+                dragOffsetY = e.clientY - label.offsetTop;
             });
 
             document.addEventListener('mousemove', (e) => {
-                if (isDragging && draggedLabel) {
-                    draggedLabel.style.left = `${e.clientX - dragOffsetX}px`;
-                    draggedLabel.style.top = `${e.clientY - dragOffsetY}px`;
+                if (isDragging && currentLabel) {
+                    currentLabel.style.left = `${e.clientX - dragOffsetX}px`;
+                    currentLabel.style.top = `${e.clientY - dragOffsetY}px`;
                 }
             });
 
             document.addEventListener('mouseup', () => {
                 isDragging = false;
-                draggedLabel = null;
+                currentLabel = null;
             });
 
             return label;
