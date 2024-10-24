@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>画像上の長さ測定(途中)</title>
+    <title>画像上の長さ測定(基準変更対応)</title>
     <style>
         canvas {
             border: 1px solid black;
@@ -24,21 +24,27 @@
             padding: 2px 5px;
             border-radius: 3px;
             font-size: 12px;
-            cursor: move; /* ドラッグを示すカーソル */
+            cursor: move;
         }
     </style>
 </head>
 <body>
-    <h1>画像上の長さ測定(修正中)</h1>
-    
+    <h1>画像上の長さ測定(基準変更対応)</h1>
+
     <input type="file" id="imageInput" accept="image/*">
     <button id="undoButton">一つ戻る</button>
     <button id="toggleModeButton">連続測定モード: オフ</button>
+
+    <!-- 基準を自由に設定するためのフィールド -->
+    <p>
+        基準長さ: 
+        <input type="number" id="baseLengthInput" value="1" step="0.01"> mm に相当するピクセル数:
+        <input type="number" id="baseLineLengthInput" value="100" step="1"> px
+        <button id="setBaseLineButton">基準を設定</button>
+    </p>
+
     <p>クリックして始点と終点を決定します。</p>
-    <p>一本目の線を1mmが基準となり、二本目以降の線の長さを測定します。</p>
-    <p>連続測定モードを追加、モード中は合計の長さを計測出来ます。</p>
-    <p>始点と終点の●をなくしました。</p>
-    <p>数値欄をドラッグできるようにしました。</p>
+    <p>一本目の線を基準として他の長さを測定します。</p>
 
     <div style="display: flex; align-items: center;">
         <canvas id="canvas"></canvas>
@@ -52,6 +58,9 @@
         const output = document.getElementById('output');
         const undoButton = document.getElementById('undoButton');
         const toggleModeButton = document.getElementById('toggleModeButton');
+        const baseLengthInput = document.getElementById('baseLengthInput');
+        const baseLineLengthInput = document.getElementById('baseLineLengthInput');
+        const setBaseLineButton = document.getElementById('setBaseLineButton');
 
         let image = new Image();
         let isDrawing = false;
@@ -59,13 +68,21 @@
         let startY = null;
         let lines = [];
         let labels = [];
-        let baseLineLength = null;
+        let baseLineLength = parseFloat(baseLineLengthInput.value); // 基準のピクセル数
+        let baseLength = parseFloat(baseLengthInput.value); // 基準のmm単位
         let totalLength = 0;
         let isContinuousMode = false;
         let isDragging = false;
         let dragOffsetX = 0;
         let dragOffsetY = 0;
         let currentLabel = null;
+
+        // 基準の設定ボタン
+        setBaseLineButton.addEventListener('click', () => {
+            baseLineLength = parseFloat(baseLineLengthInput.value);
+            baseLength = parseFloat(baseLengthInput.value);
+            output.innerHTML = `基準が設定されました。${baseLength.toFixed(2)}mm = ${baseLineLength.toFixed(2)}ピクセル`;
+        });
 
         // 画像が選択されたときに表示する
         imageInput.addEventListener('change', (event) => {
@@ -94,25 +111,20 @@
 
                 const length = Math.sqrt(Math.pow(endX - startX, 2) + Math.pow(endY - startY, 2));
 
-                if (baseLineLength === null) {
-                    baseLineLength = length;
-                    output.innerHTML = `一本目の線を基準に設定しました。1mm = ${length.toFixed(2)}ピクセル`;
+                // 測定結果の表示
+                const ratio = length / baseLineLength * baseLength;
+
+                if (isContinuousMode) {
+                    totalLength += ratio;
+                    output.innerHTML = `合計長さ: ${totalLength.toFixed(2)}mm`;
                 } else {
-                    const ratio = length / baseLineLength;
-                    
-                    // 連続測定モード時は長さを累積
-                    if (isContinuousMode) {
-                        totalLength += ratio;
-                        output.innerHTML = `合計長さ: ${totalLength.toFixed(2)}mm`;
-                    } else {
-                        output.innerHTML = `長さ: ${ratio.toFixed(2)}mm`;
-                    }
+                    output.innerHTML = `長さ: ${ratio.toFixed(2)}mm`;
                 }
 
                 // 描画情報を保存
                 lines.push({ x1: startX, y1: startY, x2: endX, y2: endY, length: length });
 
-                // 線の長さと合計長さをラベルとして追加
+                // 長さラベルを追加
                 const label = createLengthLabel(startX, startY, endX, endY, length, totalLength);
                 labels.push(label);
 
@@ -141,7 +153,7 @@
                     lastLabel.remove();
                 }
                 if (isContinuousMode && lastLine) {
-                    totalLength -= lastLine.length / baseLineLength;
+                    totalLength -= lastLine.length / baseLineLength * baseLength;
                     output.innerHTML = `最後の線を取り消しました。合計長さ: ${totalLength.toFixed(2)}mm`;
                 } else {
                     output.innerHTML = "最後の線を取り消しました。";
@@ -155,7 +167,6 @@
             isContinuousMode = !isContinuousMode;
             toggleModeButton.textContent = `連続測定モード: ${isContinuousMode ? 'オン' : 'オフ'}`;
             
-            // 連続測定モードがオフになった時、合計長さをリセット
             if (!isContinuousMode) {
                 totalLength = 0;
                 output.innerHTML += `<br>連続測定モードをオフにしました。合計長さがリセットされました。`;
@@ -192,7 +203,7 @@
 
         // 長さラベルを作成する関数
         function createLengthLabel(startX, startY, endX, endY, length, totalLength) {
-            const ratio = baseLineLength === null ? 0 : length / baseLineLength;
+            const ratio = length / baseLineLength * baseLength;
             const label = document.createElement('div');
             label.className = 'length-label';
             
@@ -204,9 +215,9 @@
             const midX = (startX + endX) / 2;
             const midY = (startY + endY) / 2;
             label.style.left = `${canvas.offsetLeft + midX}px`;
-            label.style.top = `${canvas.offsetTop + midY - 20}px`;
+            label.style.top = `${canvas.offsetTop + midY}px`;
 
-            // ドラッグ用のイベントリスナーを追加
+            // ドラッグ移動可能なラベル
             label.addEventListener('mousedown', (e) => {
                 isDragging = true;
                 currentLabel = label;
