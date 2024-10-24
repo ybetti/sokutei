@@ -198,30 +198,6 @@
             label.style.left = ${canvas.offsetLeft + midX}px;
             label.style.top = ${canvas.offsetTop + midY - 20}px;
 
-            // ドラッグ開始
-            label.addEventListener('mousedown', (e) => {
-                isDragging = true;
-                offsetX = e.clientX - label.offsetLeft;
-                offsetY = e.clientY - label.offsetTop;
-                label.style.cursor = 'grabbing';
-            });
-
-            // ドラッグ中
-            document.addEventListener('mousemove', (e) => {
-                if (isDragging) {
-                    label.style.left = `${e.clientX - offsetX}px`;
-                    label.style.top = `${e.clientY - offsetY}px`;
-                }
-            });
-
-            // ドラッグ終了
-            document.addEventListener('mouseup', () => {
-                if (isDragging) {
-                    isDragging = false;
-                    label.style.cursor = 'move';
-                }
-            });
-
             return label;
         }
     </script>
