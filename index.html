@@ -98,11 +98,11 @@
                     output.innerHTML = `一本目の線を基準に設定しました。1mm = ${length.toFixed(2)}ピクセル`;
                 } else {
                     const ratio = length / baseLineLength;
-                    totalLength += ratio;
-
-                    // 連続測定モードの時、合計長さも線上に表示
+                    
+                    // 連続測定モード時は長さを累積
                     if (isContinuousMode) {
-                        output.innerHTML = `長さ: ${totalLength.toFixed(2)}mm`;
+                        totalLength += ratio;
+                        output.innerHTML = `合計長さ: ${totalLength.toFixed(2)}mm`;
                     } else {
                         output.innerHTML = `長さ: ${ratio.toFixed(2)}mm`;
                     }
@@ -153,6 +153,8 @@
         toggleModeButton.addEventListener('click', () => {
             isContinuousMode = !isContinuousMode;
             toggleModeButton.textContent = `連続測定モード: ${isContinuousMode ? 'オン' : 'オフ'}`;
+            
+            // 連続測定モードがオフになった時、合計長さをリセット
             if (!isContinuousMode) {
                 totalLength = 0;
                 output.innerHTML += `<br>連続測定モードをオフにしました。合計長さがリセットされました。`;
@@ -194,7 +196,7 @@
             label.className = 'length-label';
             
             // 線の長さと合計長さの表示
-            label.innerText = `${totalLength.toFixed(2)}mm`;
+            label.innerText = `${isContinuousMode ? totalLength.toFixed(2) : ratio.toFixed(2)}mm`;
 
             document.body.appendChild(label);
 
