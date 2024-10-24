@@ -29,12 +29,16 @@
     </style>
 </head>
 <body>
-    <h1>画像上の長さ測定</h1>
+    <h1>画像上の長さ測定2</h1>
     
     <input type="file" id="imageInput" accept="image/*">
     <button id="undoButton">一つ戻る</button>
-    <button id="toggleModeButton">連続測定モード: オン</button>
-    <p>一本目の線を1mmとして、二本目以降の線の長さを測定します。</p>
+    <button id="toggleModeButton">連続測定モード: オフ</button>
+    <p>クリックして始点と終点を決定します。</p>
+    <p>一本目の線が基準の1mmとなり、二本目以降の線の長さを測定します。</p>
+    <p>連続測定モードを追加、モード中は合計の長さを計測出来ます。</p>
+    <p>始点と終点の●をなくしました。</p>
+    <p>ラベルをドラッグできるようにしました。</p>
 
     <div style="display: flex; align-items: center;">
         <canvas id="canvas"></canvas>
@@ -100,7 +104,7 @@
                     totalLength += ratio;
 
                     if (isContinuousMode) {
-                        output.innerHTML = `線の長さ: ${ratio.toFixed(2)}mm (${length.toFixed(2)}ピクセル)<br>合計長さ: ${totalLength.toFixed(2)}mm`;
+                        output.innerHTML = `長さ: ${totalLength.toFixed(2)}mm`;
                     } else {
                         output.innerHTML = `線の長さ: ${ratio.toFixed(2)}mm (${length.toFixed(2)}ピクセル)`;
                     }
@@ -122,7 +126,7 @@
                 isDrawing = true;
 
                 ctx.beginPath();
-                ctx.arc(startX, startY, 5, 0, Math.PI * 2, true); // 半径5の円を描く
+                ctx.arc(startX, startY, 0, 0, Math.PI * 2, true); // 半径5の円を描く
                 ctx.fillStyle = 'blue';  
                 ctx.fill();
                 ctx.closePath();
@@ -178,7 +182,7 @@
                 ctx.closePath();
 
                 ctx.beginPath();
-                ctx.arc(line.x2, line.y2, 4, 0, Math.PI * 2, true);
+                ctx.arc(line.x2, line.y2, 0, 0, Math.PI * 2, true);
                 ctx.fillStyle = 'green';  
                 ctx.fill();
                 ctx.closePath();
@@ -190,7 +194,7 @@
             const ratio = baseLineLength === null ? 0 : length / baseLineLength;
             const label = document.createElement('div');
             label.className = 'length-label';
-            label.innerText = `線: ${ratio.toFixed(2)}mm 合計: ${totalLength.toFixed(2)}mm`;
+            label.innerText = `線: ${totalLength.toFixed(2)}mm`;
 
             document.body.appendChild(label);
 
