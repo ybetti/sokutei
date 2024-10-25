@@ -1,9 +1,10 @@
+
 <!DOCTYPE html>
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>黒い点の検出と直径測定</title>
+    <title>画像上の長さ測定(途中)</title>
     <style>
         canvas {
             border: 1px solid black;
@@ -17,22 +18,28 @@
             vertical-align: top;
             margin-left: 20px;
         }
-        .diameter-label {
+        .length-label {
             position: absolute;
             color: white;
             background-color: black;
             padding: 2px 5px;
             border-radius: 3px;
             font-size: 12px;
+            cursor: move; /* ドラッグを示すカーソル */
         }
     </style>
 </head>
 <body>
-    <h1>黒い点の検出と直径測定</h1>
-
+    <h1>画像上の長さ測定(修正中)</h1>
+    
     <input type="file" id="imageInput" accept="image/*">
-    <button id="detectButton">黒い点を検出</button>
-    <p>黒い点を個別に識別し、それぞれの最大直径を赤い線で表示します。</p>
+    <button id="undoButton">一つ戻る</button>
+    <button id="toggleModeButton">連続測定モード: オフ</button>
+    <p>クリックして始点と終点を決定します。</p>
+    <p>一本目の線を1mmが基準となり、二本目以降の線の長さを測定します。</p>
+    <p>連続測定モードを追加、モード中は合計の長さを計測出来ます。</p>
+    <p>始点と終点の●をなくしました。</p>
+    <p>数値欄をドラッグできるようにしました。</p>
 
     <div style="display: flex; align-items: center;">
         <canvas id="canvas"></canvas>
@@ -43,11 +50,23 @@
         const canvas = document.getElementById('canvas');
         const ctx = canvas.getContext('2d');
         const imageInput = document.getElementById('imageInput');
-        const detectButton = document.getElementById('detectButton');
         const output = document.getElementById('output');
+        const undoButton = document.getElementById('undoButton');
+        const toggleModeButton = document.getElementById('toggleModeButton');
 
         let image = new Image();
+        let isDrawing = false;
+        let startX = null;
+        let startY = null;
+        let lines = [];
         let labels = [];
+        let baseLineLength = null;
+        let totalLength = 0;
+        let isContinuousMode = false;
+        let isDragging = false;
+        let dragOffsetX = 0;
+        let dragOffsetY = 0;
+        let currentLabel = null;
 
         // 画像が選択されたときに表示する
         imageInput.addEventListener('change', (event) => {
@@ -65,117 +84,150 @@
         image.onload = () => {
             canvas.width = image.width;
             canvas.height = image.height;
-            ctx.drawImage(image, 0, 0);
+            redraw();
         };
 
-        // 黒い点を検出して、最大直径を計測・描画する
-        detectButton.addEventListener('click', () => {
-            const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-            const data = imageData.data;
+        // 線を引くための開始点（マウスダウン）
+        canvas.addEventListener('mousedown', (e) => {
+            if (isDrawing) {
+                const endX = e.offsetX;
+                const endY = e.offsetY;
 
-            let points = [];
+                const length = Math.sqrt(Math.pow(endX - startX, 2) + Math.pow(endY - startY, 2));
 
-            // 黒いピクセルを収集（RGBAデータの配列）
-            for (let y = 0; y < canvas.height; y++) {
-                for (let x = 0; x < canvas.width; x++) {
-                    const index = (y * canvas.width + x) * 4;
-                    const r = data[index];     // Red
-                    const g = data[index + 1]; // Green
-                    const b = data[index + 2]; // Blue
-                    const alpha = data[index + 3]; // Alpha (透明度)
-
-                    // 黒に近いピクセルの判定（例: RGBがすべて50以下であれば黒とみなす）
-                    if (r < 50 && g < 50 && b < 50 && alpha > 128) {
-                        points.push({ x, y });
+                if (baseLineLength === null) {
+                    baseLineLength = length;
+                    output.innerHTML = `一本目の線を基準に設定しました。1mm = ${length.toFixed(2)}ピクセル`;
+                } else {
+                    const ratio = length / baseLineLength;
+                    
+                    // 連続測定モード時は長さを累積
+                    if (isContinuousMode) {
+                        totalLength += ratio;
+                        output.innerHTML = `合計長さ: ${totalLength.toFixed(2)}mm`;
+                    } else {
+                        output.innerHTML = `長さ: ${ratio.toFixed(2)}mm`;
                     }
                 }
+
+                // 描画情報を保存
+                lines.push({ x1: startX, y1: startY, x2: endX, y2: endY, length: length });
+
+                // 線の長さと合計長さをラベルとして追加
+                const label = createLengthLabel(startX, startY, endX, endY, length, totalLength);
+                labels.push(label);
+
+                redraw();
+
+                isDrawing = false;
+            } else {
+                startX = e.offsetX;
+                startY = e.offsetY;
+                isDrawing = true;
+
+                ctx.beginPath();
+                ctx.arc(startX, startY, 0, 0, Math.PI * 2, true); 
+                ctx.fillStyle = 'blue';  
+                ctx.fill();
+                ctx.closePath();
             }
-
-            // 黒い点をクラスタリング（近いピクセルを同じ点としてグループ化）
-            const clusters = clusterPoints(points, 10); // 10ピクセル以内を同じ点とみなす
-
-            // クラスタごとに最大直径を計測し、赤い線で表示
-            clusters.forEach(cluster => {
-                const diameter = calculateMaxDiameter(cluster);
-                drawDiameterLine(cluster, diameter);
-                displayDiameterLabel(cluster, diameter);
-            });
         });
 
-        // クラスタリング（点の集合をまとめる）
-        function clusterPoints(points, maxDistance) {
-            const clusters = [];
-            points.forEach(point => {
-                let addedToCluster = false;
-                for (const cluster of clusters) {
-                    if (isNearCluster(point, cluster, maxDistance)) {
-                        cluster.push(point);
-                        addedToCluster = true;
-                        break;
-                    }
+        // 1つ戻る機能
+        undoButton.addEventListener('click', () => {
+            if (lines.length > 0) {
+                const lastLine = lines.pop();
+                const lastLabel = labels.pop();
+                if (lastLabel) {
+                    lastLabel.remove();
                 }
-                if (!addedToCluster) {
-                    clusters.push([point]);
+                if (isContinuousMode && lastLine) {
+                    totalLength -= lastLine.length / baseLineLength;
+                    output.innerHTML = `最後の線を取り消しました。合計長さ: ${totalLength.toFixed(2)}mm`;
+                } else {
+                    output.innerHTML = "最後の線を取り消しました。";
                 }
-            });
-            return clusters;
-        }
-
-        // クラスター内の2点間の最大距離（直径）を計算
-        function calculateMaxDiameter(cluster) {
-            let maxDistance = 0;
-            let pointA = null;
-            let pointB = null;
-
-            for (let i = 0; i < cluster.length; i++) {
-                for (let j = i + 1; j < cluster.length; j++) {
-                    const dist = distance(cluster[i], cluster[j]);
-                    if (dist > maxDistance) {
-                        maxDistance = dist;
-                        pointA = cluster[i];
-                        pointB = cluster[j];
-                    }
-                }
+                redraw();
             }
+        });
 
-            return { maxDistance, pointA, pointB };
+        // 連続測定モードの切り替え
+        toggleModeButton.addEventListener('click', () => {
+            isContinuousMode = !isContinuousMode;
+            toggleModeButton.textContent = `連続測定モード: ${isContinuousMode ? 'オン' : 'オフ'}`;
+            
+            // 連続測定モードがオフになった時、合計長さをリセット
+            if (!isContinuousMode) {
+                totalLength = 0;
+                output.innerHTML += `<br>連続測定モードをオフにしました。合計長さがリセットされました。`;
+            }
+        });
+
+        // 再描画関数
+        function redraw() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.drawImage(image, 0, 0);
+
+            lines.forEach(line => {
+                ctx.beginPath();
+                ctx.arc(line.x1, line.y1, 0, 0, Math.PI * 2, true);
+                ctx.fillStyle = 'blue';  
+                ctx.fill();
+                ctx.closePath();
+
+                ctx.beginPath();
+                ctx.moveTo(line.x1, line.y1);
+                ctx.lineTo(line.x2, line.y2);
+                ctx.strokeStyle = 'red';
+                ctx.lineWidth = 2;
+                ctx.stroke();
+                ctx.closePath();
+
+                ctx.beginPath();
+                ctx.arc(line.x2, line.y2, 0, 0, Math.PI * 2, true);
+                ctx.fillStyle = 'green';  
+                ctx.fill();
+                ctx.closePath();
+            });
         }
 
-        // 2点間の距離を計算
-        function distance(point1, point2) {
-            return Math.sqrt(Math.pow(point1.x - point2.x, 2) + Math.pow(point1.y - point2.y, 2));
-        }
-
-        // クラスターに近いかどうかを判定
-        function isNearCluster(point, cluster, maxDistance) {
-            return cluster.some(clusterPoint => distance(point, clusterPoint) <= maxDistance);
-        }
-
-        // 最大直径の線を描画
-        function drawDiameterLine(cluster, diameter) {
-            ctx.beginPath();
-            ctx.moveTo(diameter.pointA.x, diameter.pointA.y);
-            ctx.lineTo(diameter.pointB.x, diameter.pointB.y);
-            ctx.strokeStyle = 'red';
-            ctx.lineWidth = 2;
-            ctx.stroke();
-            ctx.closePath();
-        }
-
-        // 最大直径の長さを表示するラベルを作成
-        function displayDiameterLabel(cluster, diameter) {
+        // 長さラベルを作成する関数
+        function createLengthLabel(startX, startY, endX, endY, length, totalLength) {
+            const ratio = baseLineLength === null ? 0 : length / baseLineLength;
             const label = document.createElement('div');
-            label.className = 'diameter-label';
-            label.innerText = `${(diameter.maxDistance).toFixed(2)} px`;
+            label.className = 'length-label';
+            
+            // 線の長さと合計長さの表示
+            label.innerText = `${isContinuousMode ? totalLength.toFixed(2) : ratio.toFixed(2)}mm`;
+
             document.body.appendChild(label);
 
-            const midX = (diameter.pointA.x + diameter.pointB.x) / 2;
-            const midY = (diameter.pointA.y + diameter.pointB.y) / 2;
-
+            const midX = (startX + endX) / 2;
+            const midY = (startY + endY) / 2;
             label.style.left = `${canvas.offsetLeft + midX}px`;
-            label.style.top = `${canvas.offsetTop + midY - 10}px`;
+            label.style.top = `${canvas.offsetTop + midY - 20}px`;
 
-            labels.push(label);
+            // ドラッグ用のイベントリスナーを追加
+            label.addEventListener('mousedown', (e) => {
+                isDragging = true;
+                currentLabel = label;
+                dragOffsetX = e.clientX - label.offsetLeft;
+                dragOffsetY = e.clientY - label.offsetTop;
+            });
+
+            document.addEventListener('mousemove', (e) => {
+                if (isDragging && currentLabel) {
+                    currentLabel.style.left = `${e.clientX - dragOffsetX}px`;
+                    currentLabel.style.top = `${e.clientY - dragOffsetY}px`;
+                }
+            });
+
+            document.addEventListener('mouseup', () => {
+                isDragging = false;
+                currentLabel = null;
+            });
+
+            return label;
         }
     </script>
 </body>
