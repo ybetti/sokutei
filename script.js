@@ -16,3 +16,49 @@ image.onload = () => {
     canvas.height = resizedCanvas.height;
     ctx.drawImage(resizedCanvas, 0, 0);
 };
+
+let isShiftPressed = false;
+let isVerticalMode = false;
+
+// Shiftキーの押下状態を検出
+document.addEventListener('keydown', (e) => {
+    if (e.key === 'Shift') {
+        isShiftPressed = true;
+    }
+});
+
+document.addEventListener('keyup', (e) => {
+    if (e.key === 'Shift') {
+        isShiftPressed = false;
+    }
+});
+
+// 垂直モードの切り替えボタン
+const toggleVerticalModeButton = document.getElementById('toggleVerticalModeButton');
+toggleVerticalModeButton.addEventListener('click', () => {
+    isVerticalMode = !isVerticalMode;
+    toggleVerticalModeButton.textContent = `垂直モード: ${isVerticalMode ? 'オン' : 'オフ'}`;
+});
+
+canvas.addEventListener('mousedown', (e) => {
+    if (isDrawing) {
+        let endX = e.offsetX;
+        let endY = e.offsetY;
+
+        // Shiftキーが押されているか垂直モードがオンの場合は垂直線を描画
+        if (isShiftPressed || isVerticalMode) {
+            endX = startX;  // X座標を固定して垂直に
+        }
+
+        const length = Math.sqrt(Math.pow(endX - startX, 2) + Math.pow(endY - startY, 2));
+        
+        // 以下は長さの計算および描画ロジック
+        // ...
+        
+        isDrawing = false;
+    } else {
+        startX = e.offsetX;
+        startY = e.offsetY;
+        isDrawing = true;
+    }
+});
