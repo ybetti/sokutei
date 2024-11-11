@@ -7,15 +7,15 @@ undoButton.addEventListener('click', () => {
         if (isContinuousMode) {
             // 削除した線の長さを取得し、合計から引く
             const removedLength = parseFloat(removedLine.label.replace("mm", ""));
-            totalLength -= removedLength;
+            totalLength -= removedLength;  // 削除分を合計長さから引く
             output.innerText = `合計長さ: ${totalLength.toFixed(2)}mm`;
         }
 
-        // ラベルを再生成
-        document.querySelectorAll('.length-label').forEach(label => label.remove()); // すべてのラベルを削除
-        redraw();  // 再描画
+        // 全てのラベルを削除し、再描画して合計長さをリセット
+        document.querySelectorAll('.length-label').forEach(label => label.remove());
+        redraw();
 
-        // 各ラインに対するラベルを再生成し、連続測定モードの合計を正しく更新
+        // 累積長さをリセットし、各ラインのラベルを再生成
         let cumulativeLength = 0;
         lines.forEach(line => {
             const lineLength = parseFloat(line.label.replace("mm", ""));
@@ -39,7 +39,7 @@ canvas.addEventListener('mousedown', (e) => {
         }
 
         const length = Math.sqrt(Math.pow(endX - startX, 2) + Math.pow(endY - startY, 2));
-        const ratio = baseLineLength ? length / baseLineLength : 0;
+        const ratio = baseLineLength ? length / baseLineLength : 1; // 基準線がない場合は1.00mmとして表示
 
         if (!baseLineLength) {
             baseLineLength = length;
