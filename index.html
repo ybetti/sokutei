@@ -37,6 +37,7 @@
         const ctx = canvas.getContext('2d');
         const imageInput = document.getElementById('imageInput');
         const output = document.getElementById('output');
+        const undoButton = document.getElementById('undoButton');
         const toggleModeButton = document.getElementById('toggleModeButton');
         const toggleVerticalModeButton = document.getElementById('toggleVerticalModeButton');
 
@@ -73,15 +74,18 @@
             toggleVerticalModeButton.textContent = `垂直モード: ${isVerticalMode ? 'オン' : 'オフ'}`;
         });
 
+        toggleModeButton.addEventListener('click', () => {
+            isContinuousMode = !isContinuousMode;
+            toggleModeButton.textContent = `連続測定モード: ${isContinuousMode ? 'オン' : 'オフ'}`;
+            if (!isContinuousMode) totalLength = 0;  // モードをオフにしたときに合計長さをリセット
+        });
+
         canvas.addEventListener('mousedown', (e) => {
             if (isDrawing) {
                 let endX = e.offsetX;
                 let endY = e.offsetY;
 
-                // 垂直モードがオンの時にX座標を固定
-                if (isVerticalMode) {
-                    endX = startX;
-                }
+                if (isVerticalMode) endX = startX; // 垂直モード
 
                 const length = Math.sqrt(Math.pow(endX - startX, 2) + Math.pow(endY - startY, 2));
                 const ratio = baseLineLength ? length / baseLineLength : 0;
@@ -99,8 +103,8 @@
                 }
 
                 lines.push({ startX, startY, endX, endY });
-                isDrawing = false;
                 createLengthLabel(startX, startY, endX, endY, ratio, totalLength); // ラベル作成
+                isDrawing = false;
                 redraw();
             } else {
                 startX = e.offsetX;
@@ -155,6 +159,19 @@
         document.addEventListener('mouseup', () => {
             isDragging = false;
             dragTarget = null;
+        });
+
+        undoButton.addEventListener('click', () => {
+            if (lines.length > 0) {
+                lines.pop();  // 最後の線を削除
+                document.querySelectorAll('.length-label').forEach(label => label.remove()); // すべてのラベルを削除
+                redraw();  // 再描画
+                lines.forEach(line => { // 残りのラインに対応するラベルを再生成
+                    const length = Math.sqrt(Math.pow(line.endX - line.startX, 2) + Math.pow(line.endY - line.startY, 2));
+                    const ratio = baseLineLength ? length / baseLineLength : 0;
+                    createLengthLabel(line.startX, line.startY, line.endX, line.endY, ratio, totalLength);
+                });
+            }
         });
     </script>
 </body>
