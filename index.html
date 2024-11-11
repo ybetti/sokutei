@@ -97,6 +97,7 @@
 
                 lines.push({ startX, startY, endX, endY });
                 isDrawing = false;
+                createLengthLabel(startX, startY, endX, endY, ratio, totalLength); // ラベル作成
                 redraw();
             } else {
                 startX = e.offsetX;
@@ -117,6 +118,20 @@
                 ctx.lineWidth = 2;
                 ctx.stroke();
             });
+        }
+
+        // ラベルを作成する関数
+        function createLengthLabel(startX, startY, endX, endY, ratio, totalLength) {
+            const label = document.createElement('div');
+            label.className = 'length-label';
+            label.innerText = isContinuousMode ? `${totalLength.toFixed(2)}mm` : `${ratio.toFixed(2)}mm`;
+            document.body.appendChild(label);
+
+            // ラベル位置の計算
+            const midX = (startX + endX) / 2;
+            const midY = (startY + endY) / 2;
+            label.style.left = `${canvas.offsetLeft + midX}px`;
+            label.style.top = `${canvas.offsetTop + midY - 20}px`;
         }
     </script>
 </body>
