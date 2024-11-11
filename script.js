@@ -4,10 +4,10 @@ undoButton.addEventListener('click', () => {
     if (lines.length > 0) {
         const removedLine = lines.pop();  // 最後の線を削除
 
-        // 連続測定モードの場合、削除したラインの長さを保持して合計長さから引く
         if (isContinuousMode) {
-            lastRemovedLength = parseFloat(removedLine.label.replace("mm", ""));  // 削除した線の長さ
-            totalLength -= lastRemovedLength;  // 削除した分を合計長さから引く
+            // 削除した線の長さを取得し、合計から引く
+            const removedLength = parseFloat(removedLine.label.replace("mm", ""));
+            totalLength -= removedLength;
             output.innerText = `合計長さ: ${totalLength.toFixed(2)}mm`;
         }
 
@@ -15,15 +15,16 @@ undoButton.addEventListener('click', () => {
         document.querySelectorAll('.length-label').forEach(label => label.remove()); // すべてのラベルを削除
         redraw();  // 再描画
 
-        // 各ラインに対するラベルを再生成
-        lines.forEach((line, index) => {
+        // 各ラインに対するラベルを再生成し、連続測定モードの合計を正しく更新
+        let cumulativeLength = 0;
+        lines.forEach(line => {
             const lineLength = parseFloat(line.label.replace("mm", ""));
-            if (isContinuousMode) {
-                // 合計長さを再計算して正しい値を表示
-                totalLength = lines.slice(0, index + 1).reduce((acc, curr) => acc + parseFloat(curr.label.replace("mm", "")), 0);
-            }
-            createLengthLabel(line.startX, line.startY, line.endX, line.endY, lineLength, totalLength);
+            cumulativeLength += lineLength;
+            createLengthLabel(line.startX, line.startY, line.endX, line.endY, lineLength, cumulativeLength);
         });
+
+        // totalLengthに現在の累積長さを保持
+        totalLength = cumulativeLength;
     }
 });
 
@@ -32,9 +33,9 @@ canvas.addEventListener('mousedown', (e) => {
         let endX = e.offsetX;
         let endY = e.offsetY;
 
-        // 垂平モードがオンの時にX座標を固定
-        if (isHorizonMode) {
-            endY = startY;
+        // 垂直モードがオンの時にX座標を固定
+        if (isVerticalMode) {
+            endX = startX;
         }
 
         const length = Math.sqrt(Math.pow(endX - startX, 2) + Math.pow(endY - startY, 2));
@@ -45,7 +46,6 @@ canvas.addEventListener('mousedown', (e) => {
             output.innerText = `基準長さを設定しました。1mm = ${length.toFixed(2)}px`;
         } else {
             if (isContinuousMode) {
-                // 連続測定モードの場合、合計長さを更新
                 totalLength += ratio;
                 output.innerText = `合計長さ: ${totalLength.toFixed(2)}mm`;
             } else {
