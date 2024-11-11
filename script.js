@@ -70,7 +70,7 @@ undoButton.addEventListener('click', () => {
 
         // 連続測定モードの場合、削除したラインの長さを保持
         if (isContinuousMode) {
-            lastRemovedLength = parseFloat(removedLine.label.replace("mm", ""));
+            lastRemovedLength = parseFloat(removedLine.label.replace("mm", ""));  // 削除した線の長さ
             totalLength -= lastRemovedLength;  // 削除した分を合計長さから引く
             output.innerText = `合計長さ: ${totalLength.toFixed(2)}mm`;
         }
