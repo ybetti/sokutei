@@ -1,4 +1,4 @@
-// 画像縮小用関数
+// 画像を縮小して描画
 function resizeImage(image, scaleFactor) {
     const tempCanvas = document.createElement('canvas');
     const tempCtx = tempCanvas.getContext('2d');
@@ -8,9 +8,9 @@ function resizeImage(image, scaleFactor) {
     return tempCanvas;
 }
 
-// 画像読み込み時に縮小画像を描画
+// 画像のonloadイベントで縮小した画像を描画する
 image.onload = () => {
-    const scaleFactor = 0.5;
+    const scaleFactor = 0.5; // 50%のサイズに縮小
     const resizedCanvas = resizeImage(image, scaleFactor);
     canvas.width = resizedCanvas.width;
     canvas.height = resizedCanvas.height;
@@ -20,7 +20,7 @@ image.onload = () => {
 let isShiftPressed = false;
 let isVerticalMode = false;
 
-// Shiftキーの押下状態を監視
+// Shiftキーの押下状態を検出
 document.addEventListener('keydown', (e) => {
     if (e.key === 'Shift') {
         isShiftPressed = true;
@@ -33,30 +33,28 @@ document.addEventListener('keyup', (e) => {
     }
 });
 
-// 垂直モード切り替えボタン
+// 垂直モードの切り替えボタン
 const toggleVerticalModeButton = document.getElementById('toggleVerticalModeButton');
 toggleVerticalModeButton.addEventListener('click', () => {
     isVerticalMode = !isVerticalMode;
-    toggleVerticalModeButton.textContent = `垂直モード: ${isVerticalMode ? 'オン' : 'オフ'}`;
+    toggleVerticalModeButton.textContent = 垂直モード: ${isVerticalMode ? 'オン' : 'オフ'};
 });
 
-// 描画処理
 canvas.addEventListener('mousedown', (e) => {
     if (isDrawing) {
         let endX = e.offsetX;
         let endY = e.offsetY;
 
-        // Shiftキーまたは垂直モードの場合、X座標を固定して垂直線を描画
+        // Shiftキーが押されているか垂直モードがオンの場合は垂直線を描画
         if (isShiftPressed || isVerticalMode) {
-            endX = startX;
+            endX = startX;  // X座標を固定して垂直に
         }
 
         const length = Math.sqrt(Math.pow(endX - startX, 2) + Math.pow(endY - startY, 2));
-
-        // 必要な長さ計算および描画の処理
-        lines.push({ x1: startX, y1: startY, x2: endX, y2: endY, length: length });
-        redraw();
-
+        
+        // 以下は長さの計算および描画ロジック
+        // ...
+        
         isDrawing = false;
     } else {
         startX = e.offsetX;
