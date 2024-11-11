@@ -49,6 +49,9 @@
         let totalLength = 0;
         let isContinuousMode = false;
         let isVerticalMode = false;
+        let isDragging = false;
+        let dragTarget = null;
+        let offsetX, offsetY;
 
         imageInput.addEventListener('change', (event) => {
             const file = event.target.files[0];
@@ -132,7 +135,27 @@
             const midY = (startY + endY) / 2;
             label.style.left = `${canvas.offsetLeft + midX}px`;
             label.style.top = `${canvas.offsetTop + midY - 20}px`;
+
+            // ドラッグイベントリスナーの追加
+            label.addEventListener('mousedown', (e) => {
+                isDragging = true;
+                dragTarget = label;
+                offsetX = e.clientX - label.getBoundingClientRect().left;
+                offsetY = e.clientY - label.getBoundingClientRect().top;
+            });
         }
+
+        document.addEventListener('mousemove', (e) => {
+            if (isDragging && dragTarget) {
+                dragTarget.style.left = `${e.clientX - offsetX}px`;
+                dragTarget.style.top = `${e.clientY - offsetY}px`;
+            }
+        });
+
+        document.addEventListener('mouseup', () => {
+            isDragging = false;
+            dragTarget = null;
+        });
     </script>
 </body>
 </html>
