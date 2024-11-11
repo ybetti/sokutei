@@ -67,6 +67,7 @@
         let dragOffsetX = 0;
         let dragOffsetY = 0;
         let currentLabel = null;
+         let isVerticalMode = false;
 
         // 画像が選択されたときに表示する
         imageInput.addEventListener('change', (event) => {
@@ -87,11 +88,21 @@
             redraw();
         };
 
+        toggleVerticalModeButton.addEventListener('click', () => {
+            isVerticalMode = !isVerticalMode;
+            toggleVerticalModeButton.textContent = `垂直モード: ${isVerticalMode ? 'オン' : 'オフ'}`;
+        });
+
         // 線を引くための開始点（マウスダウン）
         canvas.addEventListener('mousedown', (e) => {
             if (isDrawing) {
                 const endX = e.offsetX;
                 const endY = e.offsetY;
+
+                // 垂直モードがオンの時にY座標を固定
+                if (isVerticalMode) {
+                    endY = startY;
+                }
 
                 const length = Math.sqrt(Math.pow(endX - startX, 2) + Math.pow(endY - startY, 2));
 
