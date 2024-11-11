@@ -88,7 +88,7 @@
                 if (isVerticalMode) endX = startX; // 垂直モード
 
                 const length = Math.sqrt(Math.pow(endX - startX, 2) + Math.pow(endY - startY, 2));
-                const ratio = baseLineLength ? length / baseLineLength : 0;
+                const ratio = baseLineLength ? length / baseLineLength : 1.0;  // 基準線は1.0mmとして設定
 
                 if (!baseLineLength) {
                     baseLineLength = length;
@@ -131,7 +131,7 @@
         function createLengthLabel(startX, startY, endX, endY, ratio, totalLength) {
             const label = document.createElement('div');
             label.className = 'length-label';
-            label.innerText = isContinuousMode ? `${totalLength.toFixed(2)}mm` : `${ratio.toFixed(2)}mm`;
+            label.innerText = !baseLineLength ? `1.00mm` : isContinuousMode ? `${totalLength.toFixed(2)}mm` : `${ratio.toFixed(2)}mm`;  // 基準線の場合は1.00mmを表示
             document.body.appendChild(label);
 
             // ラベル位置の計算
