@@ -102,8 +102,8 @@
                     }
                 }
 
-                lines.push({ startX, startY, endX, endY });
-                createLengthLabel(startX, startY, endX, endY, ratio, totalLength); // ラベル作成
+                lines.push({ startX, startY, endX, endY, label: !baseLineLength ? `1.00mm` : isContinuousMode ? `${totalLength.toFixed(2)}mm` : `${ratio.toFixed(2)}mm` });
+                createLengthLabel(startX, startY, endX, endY, lines[lines.length - 1].label); // ラベル作成
                 isDrawing = false;
                 redraw();
             } else {
@@ -128,10 +128,10 @@
         }
 
         // ラベルを作成する関数
-        function createLengthLabel(startX, startY, endX, endY, ratio, totalLength) {
+        function createLengthLabel(startX, startY, endX, endY, labelText) {
             const label = document.createElement('div');
             label.className = 'length-label';
-            label.innerText = !baseLineLength ? `1.00mm` : isContinuousMode ? `${totalLength.toFixed(2)}mm` : `${ratio.toFixed(2)}mm`;  // 基準線の場合は1.00mmを表示
+            label.innerText = labelText;  // ラベルテキストを適用
             document.body.appendChild(label);
 
             // ラベル位置の計算
@@ -166,10 +166,8 @@
                 lines.pop();  // 最後の線を削除
                 document.querySelectorAll('.length-label').forEach(label => label.remove()); // すべてのラベルを削除
                 redraw();  // 再描画
-                lines.forEach(line => { // 残りのラインに対応するラベルを再生成
-                    const length = Math.sqrt(Math.pow(line.endX - line.startX, 2) + Math.pow(line.endY - line.startY, 2));
-                    const ratio = baseLineLength ? length / baseLineLength : 0;
-                    createLengthLabel(line.startX, line.startY, line.endX, line.endY, ratio, totalLength);
+                lines.forEach(line => { // 各ラインに対するラベルを再生成
+                    createLengthLabel(line.startX, line.startY, line.endX, line.endY, line.label);
                 });
             }
         });
