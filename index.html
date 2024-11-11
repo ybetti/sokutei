@@ -33,7 +33,7 @@
     <input type="file" id="imageInput" accept="image/*">
     <button id="undoButton">一つ戻る</button>
     <button id="toggleModeButton">連続測定モード: オフ</button>
-    <button id="toggleVerticalModeButton">垂直モード: オフ</button>
+    <button id="toggleVerticalModeButton">垂平モード: オフ</button>
 
     <div style="display: flex; align-items: center;">
         <canvas id="canvas"></canvas>
@@ -75,7 +75,7 @@
 
         toggleVerticalModeButton.addEventListener('click', () => {
             isVerticalMode = !isVerticalMode;
-            toggleVerticalModeButton.textContent = `垂直モード: ${isVerticalMode ? 'オン' : 'オフ'}`;
+            toggleVerticalModeButton.textContent = `垂平モード: ${isVerticalMode ? 'オン' : 'オフ'}`;
         });
 
         canvas.addEventListener('mousedown', (e) => {
@@ -83,9 +83,9 @@
                 let endX = e.offsetX;
                 let endY = e.offsetY;
 
-                // 垂直モードがオンの時にX座標を固定
+                // 垂平モードがオンの時にY座標を固定
                 if (isVerticalMode) {
-                    endX = startX;
+                    endY = startY;
                 }
 
                 const length = Math.sqrt(Math.pow(endX - startX, 2) + Math.pow(endY - startY, 2));
