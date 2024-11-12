@@ -26,4 +26,36 @@ canvas.addEventListener('mousedown', (e) => {
         let endX = e.offsetX;
         let endY = e.offsetY;
 
-        // 垂直モードがオンの時
+        // 垂直モードがオンの時にX座標を固定
+        if (isVerticalMode) {
+            endX = startX;
+        }
+
+        const length = Math.sqrt(Math.pow(endX - startX, 2) + Math.pow(endY - startY, 2));
+        const ratio = baseLineLength ? length / baseLineLength : 1; // 基準線がない場合は1.00mmとして表示
+
+        if (!baseLineLength) {
+            baseLineLength = length;
+            output.innerText = `基準長さを設定しました。1mm = ${length.toFixed(2)}px`;
+        } else {
+            if (isContinuousMode) {
+                totalLength += ratio;
+                output.innerText = `合計長さ: ${totalLength.toFixed(2)}mm`;
+            } else {
+                output.innerText = `長さ: ${ratio.toFixed(2)}mm`;
+            }
+        }
+
+        lines.push({ startX, startY, endX, endY, label: `${ratio.toFixed(2)}mm` });
+        
+        // lines.push の後で最後に追加した長さを保存
+        lastLengthAdded = ratio;
+
+        isDrawing = false;
+        redraw();
+    } else {
+        startX = e.offsetX;
+        startY = e.offsetY;
+        isDrawing = true;
+    }
+});
