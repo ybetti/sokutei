@@ -27,8 +27,8 @@ canvas.addEventListener('mousedown', (e) => {
         let endY = e.offsetY;
 
         // 垂直モードがオンの時にX座標を固定
-        if (isVerticalMode) {
-            endX = startX;
+        if (isHorizonMode) {
+            endY = startY;
         }
 
         const length = Math.sqrt(Math.pow(endX - startX, 2) + Math.pow(endY - startY, 2));
