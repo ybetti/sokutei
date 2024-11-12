@@ -25,7 +25,7 @@
     <input type="file" id="imageInput" accept="image/*">
     <button id="undoButton">一つ戻る</button>
     <button id="toggleModeButton">連続測定モード: オフ</button>
-    <button id="toggleHorizonModeButton">水平モード: オフ</button>
+    <button id="toggleVerticalModeButton">垂平モード: オフ</button>
 
     <div style="display: flex; align-items: center;">
         <canvas id="canvas"></canvas>
@@ -39,7 +39,7 @@
         const output = document.getElementById('output');
         const undoButton = document.getElementById('undoButton');
         const toggleModeButton = document.getElementById('toggleModeButton');
-        const toggleHorizonModeButton = document.getElementById('toggleHorizonModeButton');
+        const toggleVerticalModeButton = document.getElementById('toggleVerticalModeButton');
 
         let image = new Image();
         let isDrawing = false;
@@ -49,7 +49,7 @@
         let baseLineLength = null;
         let totalLength = 0;
         let isContinuousMode = false;
-        let isHorizonMode = false;
+        let isVerticalMode = false;
         let isDragging = false;
         let dragTarget = null;
         let offsetX, offsetY;
@@ -69,9 +69,9 @@
             ctx.drawImage(image, 0, 0);
         };
 
-        toggleHorizonModeButton.addEventListener('click', () => {
-            isHorizonMode = !isHorizonMode;
-            toggleHorizonModeButton.textContent = `水平モード: ${isHorizonMode ? 'オン' : 'オフ'}`;
+        toggleVerticalModeButton.addEventListener('click', () => {
+            isVerticalMode = !isVerticalMode;
+            toggleVerticalModeButton.textContent = `垂平モード: ${isVerticalMode ? 'オン' : 'オフ'}`;
         });
 
         toggleModeButton.addEventListener('click', () => {
@@ -85,7 +85,7 @@
                 let endX = e.offsetX;
                 let endY = e.offsetY;
 
-                if (isHorizonMode) endY = startY; // 水平モードがオンの場合、Y座標を固定
+                if (isVerticalMode) endY = startY;
 
                 const length = Math.sqrt(Math.pow(endX - startX, 2) + Math.pow(endY - startY, 2));
                 const ratio = baseLineLength ? length / baseLineLength : 1.0;
