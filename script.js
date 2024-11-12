@@ -8,10 +8,9 @@ undoButton.addEventListener('click', () => {
             // 削除した線の長さを取得し、合計から引く
             const removedLength = parseFloat(removedLine.label.replace("mm", ""));
             totalLength -= removedLength;  // 削除分を合計長さから引く
-            output.innerText = `合計長さ: ${totalLength.toFixed(2)}mm`;
         }
 
-        // 全てのラベルを削除し、再描画して合計長さをリセット
+        // 全てのラベルを削除し、再描画して累積長さを再計算
         document.querySelectorAll('.length-label').forEach(label => label.remove());
         redraw();
 
@@ -23,8 +22,11 @@ undoButton.addEventListener('click', () => {
             createLengthLabel(line.startX, line.startY, line.endX, line.endY, lineLength, cumulativeLength);
         });
 
-        // totalLengthに現在の累積長さを保持
+        // `totalLength` を更新して表示
         totalLength = cumulativeLength;
+        if (isContinuousMode) {
+            output.innerText = `合計長さ: ${totalLength.toFixed(2)}mm`;
+        }
     }
 });
 
