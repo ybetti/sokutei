@@ -1,23 +1,14 @@
-let lastLengthAdded = 0; // 最後に追加された長さを保持
+let currentModeTotalLength = 0; // 連続測定モード中の合計長さ
 
-undoButton.addEventListener('click', () => {
-    if (lines.length > 0) {
-        const removedLine = lines.pop();  // 最後の線を削除
+toggleModeButton.addEventListener('click', () => {
+    isContinuousMode = !isContinuousMode;
+    toggleModeButton.textContent = `連続測定モード: ${isContinuousMode ? 'オン' : 'オフ'}`;
 
-        if (isContinuousMode) {
-            // 最後に追加された長さを合計から引く
-            const removedLength = parseFloat(removedLine.label.replace("mm", ""));
-            totalLength -= removedLength;
-            output.innerText = `合計長さ: ${totalLength.toFixed(2)}mm`;
-        }
-
-        // ラベルを再生成
-        document.querySelectorAll('.length-label').forEach(label => label.remove()); // すべてのラベルを削除
-        redraw();  // 再描画
-        lines.forEach(line => { // 各ラインに対するラベルを再生成
-            const lineLength = parseFloat(line.label.replace("mm", ""));
-            createLengthLabel(line.startX, line.startY, line.endX, line.endY, lineLength, totalLength);
-        });
+    if (!isContinuousMode) {
+        // モードをオフにしたら合計ラベルを消去
+        const existingLabel = document.getElementById('modeTotalLengthLabel');
+        if (existingLabel) existingLabel.remove();
+        currentModeTotalLength = 0; // 合計をリセット
     }
 });
 
@@ -26,13 +17,10 @@ canvas.addEventListener('mousedown', (e) => {
         let endX = e.offsetX;
         let endY = e.offsetY;
 
-        // 垂直モードがオンの時にX座標を固定
-        if (isHorizonMode) {
-            endY = startY;
-        }
+        if (isVerticalMode) endY = startY;
 
         const length = Math.sqrt(Math.pow(endX - startX, 2) + Math.pow(endY - startY, 2));
-        const ratio = baseLineLength ? length / baseLineLength : 1; // 基準線がない場合は1.00mmとして表示
+        const ratio = baseLineLength ? length / baseLineLength : 1.0;
 
         if (!baseLineLength) {
             baseLineLength = length;
@@ -40,15 +28,17 @@ canvas.addEventListener('mousedown', (e) => {
         } else {
             if (isContinuousMode) {
                 totalLength += ratio;
+                currentModeTotalLength += ratio; // モード中の合計を更新
                 output.innerText = `合計長さ: ${totalLength.toFixed(2)}mm`;
+
+                // 連続測定モード中の合計をラベル表示
+                updateModeTotalLabel();
             } else {
                 output.innerText = `長さ: ${ratio.toFixed(2)}mm`;
             }
         }
 
         lines.push({ startX, startY, endX, endY, label: `${ratio.toFixed(2)}mm` });
-        
-        // lines.push の後で最後に追加した長さを保存
         lastLengthAdded = ratio;
 
         isDrawing = false;
@@ -59,3 +49,16 @@ canvas.addEventListener('mousedown', (e) => {
         isDrawing = true;
     }
 });
+
+function updateModeTotalLabel() {
+    let label = document.getElementById('modeTotalLengthLabel');
+    if (!label) {
+        label = document.createElement('div');
+        label.id = 'modeTotalLengthLabel';
+        label.className = 'length-label';
+        document.body.appendChild(label);
+    }
+    label.innerText = `連続測定合計: ${currentModeTotalLength.toFixed(2)}mm`;
+    label.style.left = `${canvas.offsetLeft + 20}px`; // キャンバスの左上に表示
+    label.style.top = `${canvas.offsetTop + 20}px`;
+}
