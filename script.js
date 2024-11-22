@@ -1,45 +1,8 @@
-canvas.addEventListener('mousedown', (e) => {
-    if (isDrawing) {
-        let endX = e.offsetX;
-        let endY = e.offsetY;
-
-        if (isVerticalMode) endY = startY;
-
-        const length = Math.sqrt(Math.pow(endX - startX, 2) + Math.pow(endY - startY, 2));
-        const ratio = baseLineLength ? length / baseLineLength : 1.0;
-
-        if (!baseLineLength) {
-            baseLineLength = length;
-            output.innerText = `基準長さを設定しました。1mm = ${length.toFixed(2)}px`;
-        } else {
-            if (isContinuousMode) {
-                totalLength += ratio; // 合計長さを更新
-                output.innerText = `合計長さ: ${totalLength.toFixed(2)}mm`;
-            } else {
-                output.innerText = `長さ: ${ratio.toFixed(2)}mm`;
-            }
-        }
-
-        // 合計長さをラベルに表示
-        createLengthLabel(startX, startY, endX, endY, `長さ: ${ratio.toFixed(2)}mm\n合計: ${totalLength.toFixed(2)}mm`);
-
-        // ラインデータを保存
-        lines.push({ 
-            startX, 
-            startY, 
-            endX, 
-            endY, 
-            label: `長さ: ${ratio.toFixed(2)}mm\n合計: ${totalLength.toFixed(2)}mm` 
-        });
-
-        isDrawing = false;
-        redraw();
-    } else {
-        startX = e.offsetX;
-        startY = e.offsetY;
-        isDrawing = true;
-    }
-});
+// ドラッグ関連の変数
+let isDragging = false;
+let dragTarget = null;
+let offsetX = 0;
+let offsetY = 0;
 
 function createLengthLabel(startX, startY, endX, endY, labelText) {
     const label = document.createElement('div');
@@ -53,10 +16,28 @@ function createLengthLabel(startX, startY, endX, endY, labelText) {
     label.style.left = `${canvas.offsetLeft + midX}px`;
     label.style.top = `${canvas.offsetTop + midY - 20}px`;
 
+    // ラベルのドラッグ開始
     label.addEventListener('mousedown', (e) => {
+        e.preventDefault(); // デフォルトの選択動作を防ぐ
         isDragging = true;
         dragTarget = label;
+        // マウスクリック位置とラベル位置のオフセットを記録
         offsetX = e.clientX - label.getBoundingClientRect().left;
         offsetY = e.clientY - label.getBoundingClientRect().top;
     });
 }
+
+// ドラッグ中のラベルの移動
+document.addEventListener('mousemove', (e) => {
+    if (isDragging && dragTarget) {
+        e.preventDefault(); // 不要な選択操作を防ぐ
+        dragTarget.style.left = `${e.clientX - offsetX}px`;
+        dragTarget.style.top = `${e.clientY - offsetY}px`;
+    }
+});
+
+// ドラッグ終了
+document.addEventListener('mouseup', () => {
+    isDragging = false;
+    dragTarget = null;
+});
