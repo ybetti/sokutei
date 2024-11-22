@@ -1,17 +1,3 @@
-let currentModeTotalLength = 0; // 連続測定モード中の合計長さ
-
-toggleModeButton.addEventListener('click', () => {
-    isContinuousMode = !isContinuousMode;
-    toggleModeButton.textContent = `連続測定モード: ${isContinuousMode ? 'オン' : 'オフ'}`;
-
-    if (!isContinuousMode) {
-        // モードをオフにしたら合計ラベルを消去
-        const existingLabel = document.getElementById('modeTotalLengthLabel');
-        if (existingLabel) existingLabel.remove();
-        currentModeTotalLength = 0; // 合計をリセット
-    }
-});
-
 canvas.addEventListener('mousedown', (e) => {
     if (isDrawing) {
         let endX = e.offsetX;
@@ -27,19 +13,24 @@ canvas.addEventListener('mousedown', (e) => {
             output.innerText = `基準長さを設定しました。1mm = ${length.toFixed(2)}px`;
         } else {
             if (isContinuousMode) {
-                totalLength += ratio;
-                currentModeTotalLength += ratio; // モード中の合計を更新
+                totalLength += ratio; // 合計長さを更新
                 output.innerText = `合計長さ: ${totalLength.toFixed(2)}mm`;
-
-                // 連続測定モード中の合計をラベル表示
-                updateModeTotalLabel();
             } else {
                 output.innerText = `長さ: ${ratio.toFixed(2)}mm`;
             }
         }
 
-        lines.push({ startX, startY, endX, endY, label: `${ratio.toFixed(2)}mm` });
-        lastLengthAdded = ratio;
+        // ラインデータに合計長さを追加して保存
+        lines.push({ 
+            startX, 
+            startY, 
+            endX, 
+            endY, 
+            label: `${totalLength.toFixed(2)}mm` 
+        });
+
+        // ラベルを描画する際に合計を表示
+        createLengthLabel(startX, startY, endX, endY, `${totalLength.toFixed(2)}mm`);
 
         isDrawing = false;
         redraw();
@@ -50,15 +41,22 @@ canvas.addEventListener('mousedown', (e) => {
     }
 });
 
-function updateModeTotalLabel() {
-    let label = document.getElementById('modeTotalLengthLabel');
-    if (!label) {
-        label = document.createElement('div');
-        label.id = 'modeTotalLengthLabel';
-        label.className = 'length-label';
-        document.body.appendChild(label);
-    }
-    label.innerText = `連続測定合計: ${currentModeTotalLength.toFixed(2)}mm`;
-    label.style.left = `${canvas.offsetLeft + 20}px`; // キャンバスの左上に表示
-    label.style.top = `${canvas.offsetTop + 20}px`;
+function createLengthLabel(startX, startY, endX, endY, labelText) {
+    const label = document.createElement('div');
+    label.className = 'length-label';
+    label.innerText = labelText;
+    document.body.appendChild(label);
+
+    // ラベルの位置を線の中間地点に設定
+    const midX = (startX + endX) / 2;
+    const midY = (startY + endY) / 2;
+    label.style.left = `${canvas.offsetLeft + midX}px`;
+    label.style.top = `${canvas.offsetTop + midY - 20}px`;
+
+    label.addEventListener('mousedown', (e) => {
+        isDragging = true;
+        dragTarget = label;
+        offsetX = e.clientX - label.getBoundingClientRect().left;
+        offsetY = e.clientY - label.getBoundingClientRect().top;
+    });
 }
