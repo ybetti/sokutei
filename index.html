@@ -98,6 +98,31 @@
             redraw();
         };
 
+    updateBaseLengthButton.addEventListener('click', () => {
+    const newBaseLength = parseFloat(baseLengthInput.value);
+
+    if (isNaN(newBaseLength) || newBaseLength <= 0) {
+        alert('有効な基準値を入力してください！');
+        return;
+    }
+
+    // 各ラベルを基準値に基づいて再計算
+    labels.forEach((label, index) => {
+        const line = lines[index];
+        const newLength = (line.length / baseLineLength) * newBaseLength;
+        label.textContent = `${newLength.toFixed(2)}mm`;
+
+        // 線の長さ情報も更新
+        line.calculatedLength = newLength;
+    });
+
+    // 基準長さを更新
+    baseLineLength = newBaseLength;
+    output.innerHTML = `基準値が変更されました: 1mm = ${baseLineLength.toFixed(2)}ピクセル`;
+
+    // 再描画を呼び出して、全体を更新
+    redraw();
+});
      function redraw() {
             ctx.clearRect(0, 0, canvas.width, canvas.height);
             ctx.drawImage(image, 0, 0);
