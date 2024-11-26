@@ -41,13 +41,10 @@
         <button id="updateBaseLengthButton">基準を変更</button>
         <button id="undoButton">一つ戻る</button>
         <button id="toggleModeButton">連続測定モード: オフ</button>
-        <button id="horizontalModeButton">水平モード: オフ</button>
-        <button id="verticalModeButton">垂直モード: オフ</button>
         <label for="colorPicker">線の色:</label>
         <input type="color" id="colorPicker" value="#ff0000">
     </div>
     <p>クリックして始点と終点を決定します。</p>
-    <p>基準の変更はうまく動作しなかったので使用しないでください。</p>
     <div style="display: flex; align-items: center;">
         <canvas id="canvas"></canvas>
         <div id="output"></div>
@@ -59,8 +56,6 @@
         const output = document.getElementById('output');
         const undoButton = document.getElementById('undoButton');
         const toggleModeButton = document.getElementById('toggleModeButton');
-        const horizontalModeButton = document.getElementById('horizontalModeButton');
-        const verticalModeButton = document.getElementById('verticalModeButton');
         const baseLengthInput = document.getElementById('baseLengthInput');
         const updateBaseLengthButton = document.getElementById('updateBaseLengthButton');
         const colorPicker = document.getElementById('colorPicker');
@@ -68,14 +63,12 @@
         let image = new Image();
         let isDrawing = false;
         let startX = null, startY = null;
+        let currentX = null, currentY = null; // 仮線用
         let lines = [];
         let labels = [];
-        let basePixelsPerMM = null; // ピクセル/1mm の基準
-        let baseLineLength = null;
+        let basePixelsPerMM = null;
         let totalLength = 0;
         let isContinuousMode = false;
-        let isHorizontalMode = false;
-        let isVerticalMode = false;
         let currentColor = "#ff0000";
 
         imageInput.addEventListener('change', (event) => {
@@ -96,36 +89,31 @@
             canvas.height = image.height;
             ctx.clearRect(0, 0, canvas.width, canvas.height);
             ctx.drawImage(image, 0, 0);
-            basePixelsPerMM = null; // 基準をリセット
-            totalLength = 0;
-            output.innerHTML = '';
-            lines = [];
-            labels.forEach(label => label.remove());
-            labels = [];
+            redraw();
         };
 
         canvas.addEventListener('mousedown', (e) => {
             if (isDrawing) {
                 let endX = e.offsetX;
                 let endY = e.offsetY;
-                if (isHorizontalMode) endY = startY;
-                if (isVerticalMode) endX = startX;
 
-                const lengthPixels = Math.sqrt((endX - startX) ** 2 + (endY - startY) ** 2);
-                const lengthMM = basePixelsPerMM ? lengthPixels / basePixelsPerMM : 1;
+                const length = Math.sqrt((endX - startX) ** 2 + (endY - startY) ** 2);
+                lines.push({ x1: startX, y1: startY, x2: endX, y2: endY, length, color: currentColor });
 
-                lines.push({ x1: startX, y1: startY, x2: endX, y2: endY, length: lengthPixels, color: currentColor });
-
-                if (!basePixelsPerMM) {
-                    basePixelsPerMM = lengthPixels / parseFloat(baseLengthInput.value || 1.0);
-                    output.innerHTML = `1mm = ${basePixelsPerMM.toFixed(2)}ピクセル`;
+                const ratio = length / basePixelsPerMM;
+                if (basePixelsPerMM === null) {
+                    basePixelsPerMM = length;
+                    output.innerHTML = `1mm = ${length.toFixed(2)}ピクセル`;
                 } else {
-                    if (isContinuousMode) totalLength += lengthMM;
-                    output.innerHTML = `長さ: ${lengthMM.toFixed(2)}mm${isContinuousMode ? ` 合計: ${totalLength.toFixed(2)}mm` : ''}`;
+                    if (isContinuousMode) totalLength += ratio;
+                    output.innerHTML = `長さ: ${ratio.toFixed(2)}mm${isContinuousMode ? ` 合計: ${totalLength.toFixed(2)}mm` : ''}`;
                 }
 
-                const label = createLengthLabel(startX, startY, endX, endY, lengthMM, totalLength);
+                const label = createLengthLabel(startX, startY, endX, endY, ratio, totalLength);
                 labels.push(label);
+
+                currentX = null;
+                currentY = null;
                 redraw();
                 isDrawing = false;
             } else {
@@ -135,68 +123,38 @@
             }
         });
 
-        updateBaseLengthButton.addEventListener('click', () => {
-    const newBaseLength = parseFloat(baseLengthInput.value);
+        canvas.addEventListener('mousemove', (e) => {
+            if (isDrawing) {
+                currentX = e.offsetX;
+                currentY = e.offsetY;
+                redraw();
+                drawTemporaryLine();
+            }
+        });
 
-    if (isNaN(newBaseLength) || newBaseLength <= 0) {
-        alert('有効な基準値を入力してください！');
-        return;
-    }
+        function drawTemporaryLine() {
+            if (startX !== null && startY !== null && currentX !== null && currentY !== null) {
+                ctx.beginPath();
+                ctx.moveTo(startX, startY);
+                ctx.lineTo(currentX, currentY);
+                ctx.strokeStyle = 'rgba(0, 0, 0, 0.5)';
+                ctx.lineWidth = 1;
+                ctx.setLineDash([5, 5]);
+                ctx.stroke();
+                ctx.setLineDash([]);
+            }
+        }
 
-    // 基準を再計算
-    if (lines.length > 0) {
-        const firstLine = lines[0];
-        const originalLengthPixels = Math.sqrt(
-            (firstLine.x2 - firstLine.x1) ** 2 + (firstLine.y2 - firstLine.y1) ** 2
-        );
-        basePixelsPerMM = originalLengthPixels / newBaseLength;
-    } else {
-        // 基準となる線がまだない場合
-        basePixelsPerMM = canvas.width / newBaseLength; // 仮に画像幅を基準にする
-    }
-
-    // 各ラベルの長さを更新
-    labels.forEach((label, index) => {
-        const line = lines[index];
-        const lengthMM = line.length / basePixelsPerMM;
-        label.textContent = `${lengthMM.toFixed(2)}mm`;
-        line.calculatedLength = lengthMM; // 再計算して保存
-    });
-
-    output.innerHTML = `基準値変更: 1mm = ${basePixelsPerMM.toFixed(2)}ピクセル`;
-    redraw();
-});
-
-
-        function createLengthLabel(x1, y1, x2, y2, lengthMM, total) {
+        function createLengthLabel(x1, y1, x2, y2, ratio, total) {
             const label = document.createElement('div');
             label.className = 'length-label';
-            label.textContent = isContinuousMode ? `${total.toFixed(2)}mm` : `${lengthMM.toFixed(2)}mm`;
+            label.textContent = isContinuousMode ? `${total.toFixed(2)}mm` : `${ratio.toFixed(2)}mm`;
             document.body.appendChild(label);
 
             const midX = (x1 + x2) / 2;
             const midY = (y1 + y2) / 2;
             label.style.left = `${canvas.offsetLeft + midX}px`;
             label.style.top = `${canvas.offsetTop + midY}px`;
-
-            label.addEventListener('mousedown', (e) => {
-                e.preventDefault();
-                const offsetX = e.clientX - label.offsetLeft;
-                const offsetY = e.clientY - label.offsetTop;
-
-                const onMouseMove = (e) => {
-                    label.style.left = `${e.clientX - offsetX}px`;
-                    label.style.top = `${e.clientY - offsetY}px`;
-                };
-
-                const onMouseUp = () => {
-                    document.removeEventListener('mousemove', onMouseMove);
-                    document.removeEventListener('mouseup', onMouseUp);
-                };
-
-                document.addEventListener('mousemove', onMouseMove);
-                document.addEventListener('mouseup', onMouseUp);
-            });
 
             return label;
         }
@@ -214,8 +172,30 @@
             });
         }
 
-        colorPicker.addEventListener('input', (e) => {
-            currentColor = e.target.value;
+        updateBaseLengthButton.addEventListener('click', () => {
+            const newBaseLength = parseFloat(baseLengthInput.value);
+
+            if (isNaN(newBaseLength) || newBaseLength <= 0) {
+                alert('有効な基準値を入力してください！');
+                return;
+            }
+
+            if (lines.length > 0) {
+                const firstLine = lines[0];
+                const originalLengthPixels = Math.sqrt(
+                    (firstLine.x2 - firstLine.x1) ** 2 + (firstLine.y2 - firstLine.y1) ** 2
+                );
+                basePixelsPerMM = originalLengthPixels / newBaseLength;
+            }
+
+            labels.forEach((label, index) => {
+                const line = lines[index];
+                const lengthMM = line.length / basePixelsPerMM;
+                label.textContent = `${lengthMM.toFixed(2)}mm`;
+            });
+
+            output.innerHTML = `基準値変更: 1mm = ${basePixelsPerMM.toFixed(2)}ピクセル`;
+            redraw();
         });
 
         undoButton.addEventListener('click', () => {
@@ -231,18 +211,9 @@
             toggleModeButton.textContent = `連続測定モード: ${isContinuousMode ? 'オン' : 'オフ'}`;
             if (!isContinuousMode) totalLength = 0;
         });
-
-        horizontalModeButton.addEventListener('click', () => {
-            isHorizontalMode = !isHorizontalMode;
-            horizontalModeButton.textContent = `水平モード: ${isHorizontalMode ? 'オン' : 'オフ'}`;
-        });
-
-        verticalModeButton.addEventListener('click', () => {
-            isVerticalMode = !isVerticalMode;
-            verticalModeButton.textContent = `垂直モード: ${isVerticalMode ? 'オン' : 'オフ'}`;
-        });
     </script>
 </body>
 </html>
+
 
 <!-- ここをクリックして全てのプログラムを再表示-->
