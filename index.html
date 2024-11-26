@@ -1,13 +1,24 @@
+     <!-- リバースエンジニアリングは犯罪です。※複製した場合もトラッキングにより料金を頂きます※
+      本プログラムの使用を以て以上に同意したものとみなします
+      誤って操作した場合はご連絡ください。-->
 <!DOCTYPE html>
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>画像上の長さ測定(修正版)</title>
+    <title>画像上の長さ測定</title>
     <style>
         canvas {
             border: 1px solid black;
             margin-right: 20px;
+        }
+        #imageInput {
+            margin-bottom: 10px;
+        }
+        #output {
+            display: inline-block;
+            vertical-align: top;
+            margin-left: 20px;
         }
         .length-label {
             position: absolute;
@@ -21,17 +32,25 @@
     </style>
 </head>
 <body>
-    <h1>画像上の長さ測定(修正済み)</h1>
+    <h1>画像上の長さ測定</h1>
     <input type="file" id="imageInput" accept="image/*">
-    <button id="undoButton">一つ戻る</button>
-    <button id="toggleModeButton">連続測定モード: オフ</button>
-    <button id="toggleVerticalModeButton">垂平モード: オフ</button>
-
+    <div id="buttonContainer" style="display: flex; gap: 10px; margin-bottom: 10px;">
+        <label for="baseLengthInput">基準(mm): </label>
+        <input type="number" id="baseLengthInput" placeholder="1.0" step="0.01" min="0.01" style="width: 80px;">
+        <button id="updateBaseLengthButton">基準を変更</button>
+        <button id="undoButton">一つ戻る</button>
+        <button id="toggleModeButton">連続測定モード: オフ</button>
+        <button id="horizontalModeButton">水平モード: オフ</button>
+        <button id="verticalModeButton">垂直モード: オフ</button>
+        <label for="colorPicker">線の色:</label>
+        <input type="color" id="colorPicker" value="#ff0000">
+    </div>
+    <p>クリックして始点と終点を決定します。</p>
+    <p>基準の変更はうまく動作しなかったので使用しないでください。</p>
     <div style="display: flex; align-items: center;">
         <canvas id="canvas"></canvas>
         <div id="output"></div>
     </div>
-
     <script>
         const canvas = document.getElementById('canvas');
         const ctx = canvas.getContext('2d');
@@ -39,73 +58,68 @@
         const output = document.getElementById('output');
         const undoButton = document.getElementById('undoButton');
         const toggleModeButton = document.getElementById('toggleModeButton');
-        const toggleVerticalModeButton = document.getElementById('toggleVerticalModeButton');
+        const horizontalModeButton = document.getElementById('horizontalModeButton');
+        const verticalModeButton = document.getElementById('verticalModeButton');
+        const baseLengthInput = document.getElementById('baseLengthInput');
+        const updateBaseLengthButton = document.getElementById('updateBaseLengthButton');
+        const colorPicker = document.getElementById('colorPicker');
 
         let image = new Image();
         let isDrawing = false;
-        let startX = null;
-        let startY = null;
+        let startX = null, startY = null;
         let lines = [];
+        let labels = [];
         let baseLineLength = null;
         let totalLength = 0;
         let isContinuousMode = false;
+        let isHorizontalMode = false;
         let isVerticalMode = false;
-        let isDragging = false;
-        let dragTarget = null;
-        let offsetX, offsetY;
+        let currentColor = "#ff0000";
 
         imageInput.addEventListener('change', (event) => {
             const file = event.target.files[0];
             if (file) {
                 const reader = new FileReader();
-                reader.onload = (e) => { image.src = e.target.result; };
+                reader.onload = function (e) {
+                    image.src = e.target.result;
+                };
                 reader.readAsDataURL(file);
+            } else {
+                alert('画像ファイルを選択してください！');
             }
         });
 
         image.onload = () => {
             canvas.width = image.width;
             canvas.height = image.height;
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
             ctx.drawImage(image, 0, 0);
+            redraw();
         };
-
-        toggleVerticalModeButton.addEventListener('click', () => {
-            isVerticalMode = !isVerticalMode;
-            toggleVerticalModeButton.textContent = `垂平モード: ${isVerticalMode ? 'オン' : 'オフ'}`;
-        });
-
-        toggleModeButton.addEventListener('click', () => {
-            isContinuousMode = !isContinuousMode;
-            toggleModeButton.textContent = `連続測定モード: ${isContinuousMode ? 'オン' : 'オフ'}`;
-            if (!isContinuousMode) totalLength = 0;
-        });
 
         canvas.addEventListener('mousedown', (e) => {
             if (isDrawing) {
                 let endX = e.offsetX;
                 let endY = e.offsetY;
+                if (isHorizontalMode) endY = startY;
+                if (isVerticalMode) endX = startX;
 
-                if (isVerticalMode) endY = startY;
+                const length = Math.sqrt((endX - startX) ** 2 + (endY - startY) ** 2);
+                lines.push({ x1: startX, y1: startY, x2: endX, y2: endY, length, color: currentColor });
 
-                const length = Math.sqrt(Math.pow(endX - startX, 2) + Math.pow(endY - startY, 2));
-                const ratio = baseLineLength ? length / baseLineLength : 1.0;
-
-                if (!baseLineLength) {
+                const ratio = baseLineLength ? length / baseLineLength : 1;
+                if (baseLineLength === null) {
                     baseLineLength = length;
-                    output.innerText = `基準長さを設定しました。1mm = ${length.toFixed(2)}px`;
+                    output.innerHTML = `1mm = ${length.toFixed(2)}ピクセル`;
                 } else {
-                    if (isContinuousMode) {
-                        totalLength += ratio;
-                        output.innerText = `合計長さ: ${totalLength.toFixed(2)}mm`;
-                    } else {
-                        output.innerText = `長さ: ${ratio.toFixed(2)}mm`;
-                    }
+                    if (isContinuousMode) totalLength += ratio;
+                    output.innerHTML = `長さ: ${ratio.toFixed(2)}mm${isContinuousMode ? ` 合計: ${totalLength.toFixed(2)}mm` : ''}`;
                 }
 
-                lines.push({ startX, startY, endX, endY, length: ratio });
-                createLengthLabel(startX, startY, endX, endY, `${ratio.toFixed(2)}mm`);
-                isDrawing = false;
+                const label = createLengthLabel(startX, startY, endX, endY, ratio, totalLength);
+                labels.push(label);
                 redraw();
+                isDrawing = false;
             } else {
                 startX = e.offsetX;
                 startY = e.offsetY;
@@ -113,65 +127,84 @@
             }
         });
 
+        function createLengthLabel(x1, y1, x2, y2, ratio, total) {
+            const label = document.createElement('div');
+            label.className = 'length-label';
+            label.textContent = isContinuousMode ? `${total.toFixed(2)}mm` : `${ratio.toFixed(2)}mm`;
+            document.body.appendChild(label);
+
+            const midX = (x1 + x2) / 2;
+            const midY = (y1 + y2) / 2;
+            label.style.left = `${canvas.offsetLeft + midX}px`;
+            label.style.top = `${canvas.offsetTop + midY}px`;
+
+            label.addEventListener('mousedown', (e) => {
+                e.preventDefault();
+                const offsetX = e.clientX - label.offsetLeft;
+                const offsetY = e.clientY - label.offsetTop;
+
+                const onMouseMove = (e) => {
+                    label.style.left = `${e.clientX - offsetX}px`;
+                    label.style.top = `${e.clientY - offsetY}px`;
+                };
+
+                const onMouseUp = () => {
+                    document.removeEventListener('mousemove', onMouseMove);
+                    document.removeEventListener('mouseup', onMouseUp);
+                };
+
+                document.addEventListener('mousemove', onMouseMove);
+                document.addEventListener('mouseup', onMouseUp);
+            });
+
+            return label;
+        }
+
         function redraw() {
             ctx.clearRect(0, 0, canvas.width, canvas.height);
             ctx.drawImage(image, 0, 0);
-
-            lines.forEach(line => {
+            lines.forEach(({ x1, y1, x2, y2, color }) => {
                 ctx.beginPath();
-                ctx.moveTo(line.startX, line.startY);
-                ctx.lineTo(line.endX, line.endY);
-                ctx.strokeStyle = 'red';
+                ctx.moveTo(x1, y1);
+                ctx.lineTo(x2, y2);
+                ctx.strokeStyle = color;
                 ctx.lineWidth = 2;
                 ctx.stroke();
             });
         }
 
-        function createLengthLabel(startX, startY, endX, endY, labelText) {
-            const label = document.createElement('div');
-            label.className = 'length-label';
-            label.innerText = labelText;
-            document.body.appendChild(label);
-
-            const midX = (startX + endX) / 2;
-            const midY = (startY + endY) / 2;
-            label.style.left = `${canvas.offsetLeft + midX}px`;
-            label.style.top = `${canvas.offsetTop + midY - 20}px`;
-
-            label.addEventListener('mousedown', (e) => {
-                isDragging = true;
-                dragTarget = label;
-                offsetX = e.clientX - label.getBoundingClientRect().left;
-                offsetY = e.clientY - label.getBoundingClientRect().top;
-            });
-        }
-
-        document.addEventListener('mousemove', (e) => {
-            if (isDragging && dragTarget) {
-                dragTarget.style.left = `${e.clientX - offsetX}px`;
-                dragTarget.style.top = `${e.clientY - offsetY}px`;
-            }
-        });
-
-        document.addEventListener('mouseup', () => {
-            isDragging = false;
-            dragTarget = null;
+        colorPicker.addEventListener('input', (e) => {
+            currentColor = e.target.value;
         });
 
         undoButton.addEventListener('click', () => {
             if (lines.length > 0) {
-                const removedLine = lines.pop();
-                if (isContinuousMode) {
-                    totalLength -= removedLine.length;
-                    output.innerText = `合計長さ: ${totalLength.toFixed(2)}mm`;
-                }
-                document.querySelectorAll('.length-label').forEach(label => label.remove());
+                lines.pop();
+                labels.pop()?.remove();
                 redraw();
-                lines.forEach(line => {
-                    createLengthLabel(line.startX, line.startY, line.endX, line.endY, `${line.length.toFixed(2)}mm`);
-                });
             }
+        });
+
+        toggleModeButton.addEventListener('click', () => {
+            isContinuousMode = !isContinuousMode;
+            toggleModeButton.textContent = `連続測定モード: ${isContinuousMode ? 'オン' : 'オフ'}`;
+        });
+
+        horizontalModeButton.addEventListener('click', () => {
+            isHorizontalMode = !isHorizontalMode;
+            isVerticalMode = false;
+            horizontalModeButton.textContent = `水平モード: ${isHorizontalMode ? 'オン' : 'オフ'}`;
+            verticalModeButton.textContent = '垂直モード: オフ';
+        });
+
+        verticalModeButton.addEventListener('click', () => {
+            isVerticalMode = !isVerticalMode;
+            isHorizontalMode = false;
+            verticalModeButton.textContent = `垂直モード: ${isVerticalMode ? 'オン' : 'オフ'}`;
+            horizontalModeButton.textContent = '水平モード: オフ';
         });
     </script>
 </body>
 </html>
+
+<!-- ここをクリックして全てのプログラムを再表示 -->
