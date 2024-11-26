@@ -132,30 +132,37 @@
         });
 
         updateBaseLengthButton.addEventListener('click', () => {
-            const newBaseLength = parseFloat(baseLengthInput.value);
+    const newBaseLength = parseFloat(baseLengthInput.value);
 
-            if (isNaN(newBaseLength) || newBaseLength <= 0) {
-                alert('有効な基準値を入力してください！');
-                return;
-            }
+    if (isNaN(newBaseLength) || newBaseLength <= 0) {
+        alert('有効な基準値を入力してください！');
+        return;
+    }
 
-            if (!basePixelsPerMM && lines.length > 0) {
-                basePixelsPerMM = lines[0].length / newBaseLength;
-            }
+    // 基準を再計算
+    if (lines.length > 0) {
+        const firstLine = lines[0];
+        const originalLengthPixels = Math.sqrt(
+            (firstLine.x2 - firstLine.x1) ** 2 + (firstLine.y2 - firstLine.y1) ** 2
+        );
+        basePixelsPerMM = originalLengthPixels / newBaseLength;
+    } else {
+        // 基準となる線がまだない場合
+        basePixelsPerMM = canvas.width / newBaseLength; // 仮に画像幅を基準にする
+    }
 
-            basePixelsPerMM = basePixelsPerMM || (canvas.width / newBaseLength);
-            baseLineLength = newBaseLength;
+    // 各ラベルの長さを更新
+    labels.forEach((label, index) => {
+        const line = lines[index];
+        const lengthMM = line.length / basePixelsPerMM;
+        label.textContent = `${lengthMM.toFixed(2)}mm`;
+        line.calculatedLength = lengthMM; // 再計算して保存
+    });
 
-            labels.forEach((label, index) => {
-                const line = lines[index];
-                const lengthMM = line.length / basePixelsPerMM;
-                label.textContent = `${lengthMM.toFixed(2)}mm`;
-                line.calculatedLength = lengthMM;
-            });
+    output.innerHTML = `基準値変更: 1mm = ${basePixelsPerMM.toFixed(2)}ピクセル`;
+    redraw();
+});
 
-            output.innerHTML = `基準値変更: 1mm = ${basePixelsPerMM.toFixed(2)}ピクセル`;
-            redraw();
-        });
 
         function createLengthLabel(x1, y1, x2, y2, lengthMM, total) {
             const label = document.createElement('div');
