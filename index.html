@@ -16,11 +16,6 @@
         #imageInput {
             margin-bottom: 10px;
         }
-        #output {
-            display: inline-block;
-            vertical-align: top;
-            margin-left: 20px;
-        }
         .length-label {
             position: absolute;
             color: white;
@@ -35,35 +30,15 @@
 <body>
     <h1>画像上の長さ測定</h1>
     <input type="file" id="imageInput" accept="image/*">
-    <div id="buttonContainer" style="display: flex; gap: 10px; margin-bottom: 10px;">
-        <label for="baseLengthInput">基準(mm): </label>
-        <input type="number" id="baseLengthInput" placeholder="1.0" step="0.01" min="0.01" style="width: 80px;">
-        <button id="updateBaseLengthButton">基準を変更</button>
-        <button id="undoButton">一つ戻る</button>
-        <button id="toggleModeButton">連続測定モード: オフ</button>
-        <button id="horizontalModeButton">水平モード: オフ</button>
-        <button id="verticalModeButton">垂直モード: オフ</button>
-        <label for="colorPicker">線の色:</label>
-        <input type="color" id="colorPicker" value="#ff0000">
-    </div>
-    <p>クリックして始点と終点を決定します。</p>
-    <p>基準の変更はうまく動作しなかったので使用しないでください。</p>
-    <div style="display: flex; align-items: center;">
-        <canvas id="canvas"></canvas>
-        <div id="output"></div>
-    </div>
+    <button id="horizontalModeButton">水平モード: オフ</button>
+    <button id="verticalModeButton">垂直モード: オフ</button>
+    <canvas id="canvas"></canvas>
     <script>
         const canvas = document.getElementById('canvas');
         const ctx = canvas.getContext('2d');
         const imageInput = document.getElementById('imageInput');
-        const output = document.getElementById('output');
-        const undoButton = document.getElementById('undoButton');
-        const toggleModeButton = document.getElementById('toggleModeButton');
         const horizontalModeButton = document.getElementById('horizontalModeButton');
         const verticalModeButton = document.getElementById('verticalModeButton');
-        const baseLengthInput = document.getElementById('baseLengthInput');
-        const updateBaseLengthButton = document.getElementById('updateBaseLengthButton');
-        const colorPicker = document.getElementById('colorPicker');
 
         let image = new Image();
         let isDrawing = false;
@@ -71,12 +46,8 @@
         let currentX = null, currentY = null;
         let lines = [];
         let labels = [];
-        let basePixelsPerMM = null;
-        let totalLength = 0;
-        let isContinuousMode = false;
         let isHorizontalMode = false;
         let isVerticalMode = false;
-        let currentColor = "#ff0000";
 
         imageInput.addEventListener('change', (event) => {
             const file = event.target.files[0];
@@ -96,7 +67,6 @@
             canvas.height = image.height;
             ctx.clearRect(0, 0, canvas.width, canvas.height);
             ctx.drawImage(image, 0, 0);
-            redraw();
         };
 
         canvas.addEventListener('mousedown', (e) => {
@@ -107,6 +77,7 @@
 
         canvas.addEventListener('mousemove', (e) => {
             if (!isDrawing) return;
+
             currentX = e.offsetX;
             currentY = e.offsetY;
 
@@ -127,13 +98,13 @@
             if (isHorizontalMode) endY = startY;
             if (isVerticalMode) endX = startX;
 
+            // 線を記録
+            lines.push({ x1: startX, y1: startY, x2: endX, y2: endY });
+
+            // ラベルを作成
             const pixelLength = Math.sqrt((endX - startX) ** 2 + (endY - startY) ** 2);
-            const mmLength = basePixelsPerMM ? pixelLength / basePixelsPerMM : 0;
+            createLengthLabel((startX + endX) / 2, (startY + endY) / 2, pixelLength);
 
-            lines.push({ x1: startX, y1: startY, x2: endX, y2: endY, length: mmLength, color: currentColor });
-            if (isContinuousMode) totalLength += mmLength;
-
-            createLengthLabel((startX + endX) / 2, (startY + endY) / 2, mmLength);
             redraw();
         });
 
@@ -149,11 +120,12 @@
         function redraw() {
             ctx.clearRect(0, 0, canvas.width, canvas.height);
             ctx.drawImage(image, 0, 0);
-            lines.forEach(({ x1, y1, x2, y2, color }) => {
+
+            lines.forEach(({ x1, y1, x2, y2 }) => {
                 ctx.beginPath();
                 ctx.moveTo(x1, y1);
                 ctx.lineTo(x2, y2);
-                ctx.strokeStyle = color;
+                ctx.strokeStyle = 'black';
                 ctx.lineWidth = 2;
                 ctx.stroke();
             });
@@ -173,29 +145,13 @@
             horizontalModeButton.textContent = '水平モード: オフ';
         });
 
-        updateBaseLengthButton.addEventListener('click', () => {
-            const newBaseLength = parseFloat(baseLengthInput.value);
-            if (newBaseLength > 0 && lines.length > 0) {
-                const firstLine = lines[0];
-                const pixelLength = Math.sqrt((firstLine.x2 - firstLine.x1) ** 2 + (firstLine.y2 - firstLine.y1) ** 2);
-                basePixelsPerMM = pixelLength / newBaseLength;
-
-                lines.forEach((line) => {
-                    line.length = Math.sqrt((line.x2 - line.x1) ** 2 + (line.y2 - line.y1) ** 2) / basePixelsPerMM;
-                });
-
-                labels.forEach((label, index) => {
-                    label.textContent = `${lines[index].length.toFixed(2)}mm`;
-                });
-            }
-        });
-
         function createLengthLabel(x, y, length) {
             const label = document.createElement('div');
             label.className = 'length-label';
-            label.textContent = `${length.toFixed(2)}mm`;
+            label.textContent = `${length.toFixed(2)} px`;
             document.body.appendChild(label);
 
+            // ラベルの位置を設定
             label.style.left = `${canvas.offsetLeft + x}px`;
             label.style.top = `${canvas.offsetTop + y}px`;
 
