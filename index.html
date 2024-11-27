@@ -100,14 +100,16 @@
                 const length = Math.sqrt((endX - startX) ** 2 + (endY - startY) ** 2);
                 lines.push({ x1: startX, y1: startY, x2: endX, y2: endY, length, color: currentColor });
 
-                const ratio = length / basePixelsPerMM;
-                if (basePixelsPerMM === null) {
-                    basePixelsPerMM = length;
-                    output.innerHTML = `1mm = ${length.toFixed(2)}ピクセル`;
-                } else {
-                    if (isContinuousMode) totalLength += ratio;
-                    output.innerHTML = `長さ: ${ratio.toFixed(2)}mm${isContinuousMode ? ` 合計: ${totalLength.toFixed(2)}mm` : ''}`;
+                if (basePixelsPerMM === null || basePixelsPerMM === 0) {
+                    basePixelsPerMM = length / parseFloat(baseLengthInput.value || 1);
+                    if (!basePixelsPerMM) {
+                        alert("基準値を正しく設定してください！");
+                        return;
+                    }
                 }
+
+                const ratio = length / basePixelsPerMM;
+                if (isContinuousMode) totalLength += ratio;
 
                 const label = createLengthLabel(startX, startY, endX, endY, ratio, totalLength);
                 labels.push(label);
@@ -156,7 +158,28 @@
             label.style.left = `${canvas.offsetLeft + midX}px`;
             label.style.top = `${canvas.offsetTop + midY}px`;
 
+            // ドラッグ可能にする
+            label.addEventListener('mousedown', startDrag);
             return label;
+        }
+
+        function startDrag(e) {
+            const label = e.target;
+            let offsetX = e.clientX - parseFloat(label.style.left);
+            let offsetY = e.clientY - parseFloat(label.style.top);
+
+            function drag(e) {
+                label.style.left = `${e.clientX - offsetX}px`;
+                label.style.top = `${e.clientY - offsetY}px`;
+            }
+
+            function stopDrag() {
+                document.removeEventListener('mousemove', drag);
+                document.removeEventListener('mouseup', stopDrag);
+            }
+
+            document.addEventListener('mousemove', drag);
+            document.addEventListener('mouseup', stopDrag);
         }
 
         function redraw() {
@@ -174,14 +197,12 @@
 
         updateBaseLengthButton.addEventListener('click', () => {
             const newBaseLength = parseFloat(baseLengthInput.value);
-
             if (isNaN(newBaseLength) || newBaseLength <= 0) {
                 alert('有効な基準値を入力してください！');
                 return;
             }
-
-            if (lines.length > 0) {
-                const firstLine = lines[0];
+            const firstLine = lines[0];
+            if (firstLine) {
                 const originalLengthPixels = Math.sqrt(
                     (firstLine.x2 - firstLine.x1) ** 2 + (firstLine.y2 - firstLine.y1) ** 2
                 );
@@ -214,6 +235,7 @@
     </script>
 </body>
 </html>
+
 
 
 <!-- ここをクリックして全てのプログラムを再表示-->
