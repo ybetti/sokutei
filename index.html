@@ -13,6 +13,9 @@
             border: 1px solid black;
             margin-right: 20px;
         }
+        #imageInput {
+            margin-bottom: 10px;
+        }
         .length-label {
             position: absolute;
             color: white;
@@ -27,15 +30,8 @@
 <body>
     <h1>画像上の長さ測定</h1>
     <input type="file" id="imageInput" accept="image/*">
-    <div>
-        <button id="horizontalModeButton">水平モード: オフ</button>
-        <button id="verticalModeButton">垂直モード: オフ</button>
-        <label for="baseLengthInput">基準(mm): </label>
-        <input type="number" id="baseLengthInput" placeholder="1.0" step="0.01" min="0.01" style="width: 80px;">
-        <button id="updateBaseLengthButton">基準を変更</button>
-        <label for="colorPicker">線の色:</label>
-        <input type="color" id="colorPicker" value="#ff0000">
-    </div>
+    <button id="horizontalModeButton">水平モード: オフ</button>
+    <button id="verticalModeButton">垂直モード: オフ</button>
     <canvas id="canvas"></canvas>
     <script>
         const canvas = document.getElementById('canvas');
@@ -43,19 +39,15 @@
         const imageInput = document.getElementById('imageInput');
         const horizontalModeButton = document.getElementById('horizontalModeButton');
         const verticalModeButton = document.getElementById('verticalModeButton');
-        const baseLengthInput = document.getElementById('baseLengthInput');
-        const updateBaseLengthButton = document.getElementById('updateBaseLengthButton');
-        const colorPicker = document.getElementById('colorPicker');
 
         let image = new Image();
         let isDrawing = false;
         let startX = null, startY = null;
+        let currentX = null, currentY = null;
         let lines = [];
         let labels = [];
         let isHorizontalMode = false;
         let isVerticalMode = false;
-        let baseLength = 1.0; // mm
-        let currentColor = "#ff0000";
 
         // 画像の読み込み
         imageInput.addEventListener('change', (event) => {
@@ -78,50 +70,68 @@
             ctx.drawImage(image, 0, 0);
         };
 
-        // マウスクリック時
-        canvas.addEventListener('click', (e) => {
-            const x = e.offsetX;
-            const y = e.offsetY;
-
-            if (!isDrawing) {
-                // 始点を設定
-                startX = x;
-                startY = y;
-                isDrawing = true;
-            } else {
-                // 終点を設定して線を描画
-                let endX = x;
-                let endY = y;
-
-                if (isHorizontalMode) endY = startY; // 水平モード適用
-                if (isVerticalMode) endX = startX; // 垂直モード適用
-
-                // 線を記録
-                const pixelLength = Math.sqrt((endX - startX) ** 2 + (endY - startY) ** 2);
-                const realLength = pixelLength / baseLength;
-
-                lines.push({ x1: startX, y1: startY, x2: endX, y2: endY, color: currentColor, realLength });
-
-                createLengthLabel((startX + endX) / 2, (startY + endY) / 2, realLength);
-
-                redraw();
-
-                // 終点を新しい始点に設定
-                startX = endX;
-                startY = endY;
-            }
+        // マウス押下時
+        canvas.addEventListener('mousedown', (e) => {
+            startX = e.offsetX;
+            startY = e.offsetY;
+            isDrawing = true;
         });
+
+        // マウス移動時（ガイドライン表示）
+        canvas.addEventListener('mousemove', (e) => {
+            if (!isDrawing) return;
+
+            currentX = e.offsetX;
+            currentY = e.offsetY;
+
+            if (isHorizontalMode) currentY = startY; // 水平モード
+            if (isVerticalMode) currentX = startX; // 垂直モード
+
+            redraw();
+            drawGuideLine(startX, startY, currentX, currentY);
+        });
+
+        // マウス離した時
+        canvas.addEventListener('mouseup', (e) => {
+            if (!isDrawing) return;
+            isDrawing = false;
+
+            let endX = e.offsetX;
+            let endY = e.offsetY;
+
+            if (isHorizontalMode) endY = startY; // 水平モード適用
+            if (isVerticalMode) endX = startX; // 垂直モード適用
+
+            // 線を記録
+            lines.push({ x1: startX, y1: startY, x2: endX, y2: endY });
+
+            // ラベルを作成
+            const pixelLength = Math.sqrt((endX - startX) ** 2 + (endY - startY) ** 2);
+            createLengthLabel((startX + endX) / 2, (startY + endY) / 2, pixelLength);
+
+            redraw();
+        });
+
+        // ガイドラインの描画
+        function drawGuideLine(x1, y1, x2, y2) {
+            ctx.beginPath();
+            ctx.moveTo(x1, y1);
+            ctx.lineTo(x2, y2);
+            ctx.strokeStyle = 'rgba(0, 0, 0, 0.5)';
+            ctx.lineWidth = 1;
+            ctx.stroke();
+        }
 
         // 全体の再描画
         function redraw() {
             ctx.clearRect(0, 0, canvas.width, canvas.height);
             ctx.drawImage(image, 0, 0);
 
-            lines.forEach(({ x1, y1, x2, y2, color }) => {
+            lines.forEach(({ x1, y1, x2, y2 }) => {
                 ctx.beginPath();
                 ctx.moveTo(x1, y1);
                 ctx.lineTo(x2, y2);
-                ctx.strokeStyle = color;
+                ctx.strokeStyle = 'black';
                 ctx.lineWidth = 2;
                 ctx.stroke();
             });
@@ -131,7 +141,7 @@
         function createLengthLabel(x, y, length) {
             const label = document.createElement('div');
             label.className = 'length-label';
-            label.textContent = `${length.toFixed(2)} mm`;
+            label.textContent = `${length.toFixed(2)} px`;
             document.body.appendChild(label);
 
             // ラベルの位置を設定
@@ -155,23 +165,6 @@
             isHorizontalMode = false;
             verticalModeButton.textContent = `垂直モード: ${isVerticalMode ? 'オン' : 'オフ'}`;
             horizontalModeButton.textContent = '水平モード: オフ';
-        });
-
-        // 基準変更ボタン
-        updateBaseLengthButton.addEventListener('click', () => {
-            const inputBaseLength = parseFloat(baseLengthInput.value);
-            if (inputBaseLength > 0) {
-                baseLength = inputBaseLength;
-                labels.forEach(label => {
-                    const pixelLength = parseFloat(label.textContent.split(' ')[0]) * baseLength;
-                    label.textContent = `${pixelLength.toFixed(2)} mm`;
-                });
-            }
-        });
-
-        // 線の色変更
-        colorPicker.addEventListener('input', (e) => {
-            currentColor = e.target.value;
         });
     </script>
 </body>
