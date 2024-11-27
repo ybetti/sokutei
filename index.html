@@ -30,8 +30,16 @@
 <body>
     <h1>画像上の長さ測定</h1>
     <input type="file" id="imageInput" accept="image/*">
-    <button id="horizontalModeButton">水平モード: オフ</button>
-    <button id="verticalModeButton">垂直モード: オフ</button>
+    <div>
+        <button id="horizontalModeButton">水平モード: オフ</button>
+        <button id="verticalModeButton">垂直モード: オフ</button>
+        <label for="baseLengthInput">基準(mm): </label>
+        <input type="number" id="baseLengthInput" placeholder="1.0" step="0.01" min="0.01" style="width: 80px;">
+        <button id="updateBaseLengthButton">基準を変更</button>
+        <label for="colorPicker">線の色:</label>
+        <input type="color" id="colorPicker" value="#ff0000">
+        <button id="toggleContinuousModeButton">連続測定モード: オフ</button>
+    </div>
     <canvas id="canvas"></canvas>
     <script>
         const canvas = document.getElementById('canvas');
@@ -39,6 +47,10 @@
         const imageInput = document.getElementById('imageInput');
         const horizontalModeButton = document.getElementById('horizontalModeButton');
         const verticalModeButton = document.getElementById('verticalModeButton');
+        const baseLengthInput = document.getElementById('baseLengthInput');
+        const updateBaseLengthButton = document.getElementById('updateBaseLengthButton');
+        const colorPicker = document.getElementById('colorPicker');
+        const toggleContinuousModeButton = document.getElementById('toggleContinuousModeButton');
 
         let image = new Image();
         let isDrawing = false;
@@ -48,7 +60,11 @@
         let labels = [];
         let isHorizontalMode = false;
         let isVerticalMode = false;
+        let baseLength = 1.0; // mm
+        let isContinuousMode = false;
+        let currentColor = "#ff0000";
 
+        // 画像の読み込み
         imageInput.addEventListener('change', (event) => {
             const file = event.target.files[0];
             if (file) {
@@ -69,25 +85,28 @@
             ctx.drawImage(image, 0, 0);
         };
 
+        // マウス押下時
         canvas.addEventListener('mousedown', (e) => {
             startX = e.offsetX;
             startY = e.offsetY;
             isDrawing = true;
         });
 
+        // マウス移動時（ガイドライン表示）
         canvas.addEventListener('mousemove', (e) => {
             if (!isDrawing) return;
 
             currentX = e.offsetX;
             currentY = e.offsetY;
 
-            if (isHorizontalMode) currentY = startY;
-            if (isVerticalMode) currentX = startX;
+            if (isHorizontalMode) currentY = startY; // 水平モード
+            if (isVerticalMode) currentX = startX; // 垂直モード
 
             redraw();
             drawGuideLine(startX, startY, currentX, currentY);
         });
 
+        // マウス離した時
         canvas.addEventListener('mouseup', (e) => {
             if (!isDrawing) return;
             isDrawing = false;
@@ -95,19 +114,21 @@
             let endX = e.offsetX;
             let endY = e.offsetY;
 
-            if (isHorizontalMode) endY = startY;
-            if (isVerticalMode) endX = startX;
+            if (isHorizontalMode) endY = startY; // 水平モード適用
+            if (isVerticalMode) endX = startX; // 垂直モード適用
 
             // 線を記録
-            lines.push({ x1: startX, y1: startY, x2: endX, y2: endY });
-
-            // ラベルを作成
             const pixelLength = Math.sqrt((endX - startX) ** 2 + (endY - startY) ** 2);
-            createLengthLabel((startX + endX) / 2, (startY + endY) / 2, pixelLength);
+            const realLength = pixelLength / baseLength;
+
+            lines.push({ x1: startX, y1: startY, x2: endX, y2: endY, color: currentColor, realLength });
+
+            createLengthLabel((startX + endX) / 2, (startY + endY) / 2, realLength);
 
             redraw();
         });
 
+        // ガイドラインの描画
         function drawGuideLine(x1, y1, x2, y2) {
             ctx.beginPath();
             ctx.moveTo(x1, y1);
@@ -117,38 +138,26 @@
             ctx.stroke();
         }
 
+        // 全体の再描画
         function redraw() {
             ctx.clearRect(0, 0, canvas.width, canvas.height);
             ctx.drawImage(image, 0, 0);
 
-            lines.forEach(({ x1, y1, x2, y2 }) => {
+            lines.forEach(({ x1, y1, x2, y2, color }) => {
                 ctx.beginPath();
                 ctx.moveTo(x1, y1);
                 ctx.lineTo(x2, y2);
-                ctx.strokeStyle = 'black';
+                ctx.strokeStyle = color;
                 ctx.lineWidth = 2;
                 ctx.stroke();
             });
         }
 
-        horizontalModeButton.addEventListener('click', () => {
-            isHorizontalMode = !isHorizontalMode;
-            isVerticalMode = false;
-            horizontalModeButton.textContent = `水平モード: ${isHorizontalMode ? 'オン' : 'オフ'}`;
-            verticalModeButton.textContent = '垂直モード: オフ';
-        });
-
-        verticalModeButton.addEventListener('click', () => {
-            isVerticalMode = !isVerticalMode;
-            isHorizontalMode = false;
-            verticalModeButton.textContent = `垂直モード: ${isVerticalMode ? 'オン' : 'オフ'}`;
-            horizontalModeButton.textContent = '水平モード: オフ';
-        });
-
+        // ラベルの作成
         function createLengthLabel(x, y, length) {
             const label = document.createElement('div');
             label.className = 'length-label';
-            label.textContent = `${length.toFixed(2)} px`;
+            label.textContent = `${length.toFixed(2)} mm`;
             document.body.appendChild(label);
 
             // ラベルの位置を設定
@@ -157,9 +166,49 @@
 
             labels.push(label);
         }
+
+        // 水平モードの切り替え
+        horizontalModeButton.addEventListener('click', () => {
+            isHorizontalMode = !isHorizontalMode;
+            isVerticalMode = false;
+            horizontalModeButton.textContent = `水平モード: ${isHorizontalMode ? 'オン' : 'オフ'}`;
+            verticalModeButton.textContent = '垂直モード: オフ';
+        });
+
+        // 垂直モードの切り替え
+        verticalModeButton.addEventListener('click', () => {
+            isVerticalMode = !isVerticalMode;
+            isHorizontalMode = false;
+            verticalModeButton.textContent = `垂直モード: ${isVerticalMode ? 'オン' : 'オフ'}`;
+            horizontalModeButton.textContent = '水平モード: オフ';
+        });
+
+        // 基準変更ボタン
+        updateBaseLengthButton.addEventListener('click', () => {
+            const inputBaseLength = parseFloat(baseLengthInput.value);
+            if (inputBaseLength > 0) {
+                baseLength = inputBaseLength;
+                labels.forEach(label => {
+                    const pixelLength = parseFloat(label.textContent.split(' ')[0]) * baseLength;
+                    label.textContent = `${pixelLength.toFixed(2)} mm`;
+                });
+            }
+        });
+
+        // 線の色変更
+        colorPicker.addEventListener('input', (e) => {
+            currentColor = e.target.value;
+        });
+
+        // 連続測定モード
+        toggleContinuousModeButton.addEventListener('click', () => {
+            isContinuousMode = !isContinuousMode;
+            toggleContinuousModeButton.textContent = `連続測定モード: ${isContinuousMode ? 'オン' : 'オフ'}`;
+        });
     </script>
 </body>
 </html>
+
 
 
 
