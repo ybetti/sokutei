@@ -43,6 +43,7 @@
         <button id="toggleModeButton">連続測定モード: オフ</button>
         <button id="horizontalModeButton">水平モード: オフ</button>
         <button id="verticalModeButton">垂直モード: オフ</button>
+        <button id="toggleMarkersButton">印表示: オフ</button>
         <label for="colorPicker">線の色:</label>
         <input type="color" id="colorPicker" value="#ff0000">
     </div>
@@ -60,6 +61,7 @@
         const toggleModeButton = document.getElementById('toggleModeButton');
         const horizontalModeButton = document.getElementById('horizontalModeButton');
         const verticalModeButton = document.getElementById('verticalModeButton');
+        const toggleMarkersButton = document.getElementById('toggleMarkersButton');
         const baseLengthInput = document.getElementById('baseLengthInput');
         const updateBaseLengthButton = document.getElementById('updateBaseLengthButton');
         const colorPicker = document.getElementById('colorPicker');
@@ -69,13 +71,14 @@
         let startX = null, startY = null;
         let lines = [];
         let labels = [];
-        let basePixelsPerMM = null;
+        let basePixelsPerMM = null; // ピクセル/1mm の基準
         let totalLength = 0;
         let isContinuousMode = false;
         let isHorizontalMode = false;
         let isVerticalMode = false;
+        let showMarkers = false; // 印の表示状態
         let currentColor = "#ff0000";
-        let guideX = null, guideY = null;
+        let currentGuide = null; // ガイド線情報
 
         imageInput.addEventListener('change', (event) => {
             const file = event.target.files[0];
@@ -95,7 +98,7 @@
             canvas.height = image.height;
             ctx.clearRect(0, 0, canvas.width, canvas.height);
             ctx.drawImage(image, 0, 0);
-            basePixelsPerMM = null;
+            basePixelsPerMM = null; // 基準をリセット
             totalLength = 0;
             output.innerHTML = '';
             lines = [];
@@ -123,11 +126,11 @@
                     output.innerHTML = `長さ: ${lengthMM.toFixed(2)}mm${isContinuousMode ? ` 合計: ${totalLength.toFixed(2)}mm` : ''}`;
                 }
 
-                const label = createLengthLabel(startX, startY, endX, endY, lengthMM);
+                const label = createLengthLabel(startX, startY, endX, endY, lengthMM, totalLength);
                 labels.push(label);
                 redraw();
                 isDrawing = false;
-                guideX = guideY = null;
+                currentGuide = null;
             } else {
                 startX = e.offsetX;
                 startY = e.offsetY;
@@ -137,21 +140,46 @@
 
         canvas.addEventListener('mousemove', (e) => {
             if (isDrawing) {
-                guideX = e.offsetX;
-                guideY = e.offsetY;
+                const guideEndX = isVerticalMode ? startX : e.offsetX;
+                const guideEndY = isHorizontalMode ? startY : e.offsetY;
+                currentGuide = { x1: startX, y1: startY, x2: guideEndX, y2: guideEndY };
                 redraw();
             }
         });
 
-        canvas.addEventListener('mouseleave', () => {
-            guideX = guideY = null;
+        updateBaseLengthButton.addEventListener('click', () => {
+            const newBaseLength = parseFloat(baseLengthInput.value);
+
+            if (isNaN(newBaseLength) || newBaseLength <= 0) {
+                alert('有効な基準値を入力してください！');
+                return;
+            }
+
+            if (lines.length > 0) {
+                const firstLine = lines[0];
+                const originalLengthPixels = Math.sqrt(
+                    (firstLine.x2 - firstLine.x1) ** 2 + (firstLine.y2 - firstLine.y1) ** 2
+                );
+                basePixelsPerMM = originalLengthPixels / newBaseLength;
+            } else {
+                basePixelsPerMM = canvas.width / newBaseLength;
+            }
+
+            labels.forEach((label, index) => {
+                const line = lines[index];
+                const lengthMM = line.length / basePixelsPerMM;
+                label.textContent = `${lengthMM.toFixed(2)}mm`;
+                line.calculatedLength = lengthMM;
+            });
+
+            output.innerHTML = `基準値変更: 1mm = ${basePixelsPerMM.toFixed(2)}ピクセル`;
             redraw();
         });
 
-        function createLengthLabel(x1, y1, x2, y2, lengthMM) {
+        function createLengthLabel(x1, y1, x2, y2, lengthMM, total) {
             const label = document.createElement('div');
             label.className = 'length-label';
-            label.textContent = `${lengthMM.toFixed(2)}mm`;
+            label.textContent = isContinuousMode ? `${total.toFixed(2)}mm` : `${lengthMM.toFixed(2)}mm`;
             document.body.appendChild(label);
 
             const midX = (x1 + x2) / 2;
@@ -181,53 +209,88 @@
             return label;
         }
 
+        function drawMarkers(x1, y1, x2, y2) {
+            const angle = Math.atan2(y2 - y1, x2 - x1);
+            const markerLength = 10; // 印の長さ
+            const drawMarker = (x, y) => {
+                const offsetX = Math.cos(angle + Math.PI / 2) * markerLength;
+                const offsetY = Math.sin(angle + Math.PI / 2) * markerLength;
+                ctx.beginPath();
+                ctx.moveTo(x - offsetX, y - offsetY);
+                ctx.lineTo(x + offsetX, y + offsetY);
+                ctx.stroke();
+            };
+
+            drawMarker(x1, y1);
+            drawMarker(x2, y2);
+        }
+
         function redraw() {
             ctx.clearRect(0, 0, canvas.width, canvas.height);
             ctx.drawImage(image, 0, 0);
-
-            if (isDrawing && guideX !== null && guideY !== null) {
+            lines.forEach(line => {
+                ctx.strokeStyle = line.color;
                 ctx.beginPath();
-                ctx.moveTo(startX, startY);
-                ctx.lineTo(guideX, guideY);
-                ctx.strokeStyle = "red";
-                ctx.setLineDash([5, 5]);
-                ctx.lineWidth = 1;
+                ctx.moveTo(line.x1, line.y1);
+                ctx.lineTo(line.x2, line.y2);
                 ctx.stroke();
-                ctx.setLineDash([]);
-            }
 
-            lines.forEach(({ x1, y1, x2, y2, color }) => {
-                ctx.beginPath();
-                ctx.moveTo(x1, y1);
-                ctx.lineTo(x2, y2);
-                ctx.strokeStyle = color;
-                ctx.lineWidth = 2;
-                ctx.stroke();
+                if (showMarkers) {
+                    drawMarkers(line.x1, line.y1, line.x2, line.y2);
+                }
             });
-        }
 
-        undoButton.addEventListener('click', () => {
-            if (lines.length > 0) {
-                lines.pop();
-                labels.pop()?.remove();
-                redraw();
+            if (currentGuide) {
+                ctx.setLineDash([5, 5]); // 点線
+                ctx.strokeStyle = "red";
+                ctx.beginPath();
+                ctx.moveTo(currentGuide.x1, currentGuide.y1);
+                ctx.lineTo(currentGuide.x2, currentGuide.y2);
+                ctx.stroke();
+                ctx.setLineDash([]); // 点線解除
             }
-        });
+        }
 
         toggleModeButton.addEventListener('click', () => {
             isContinuousMode = !isContinuousMode;
             toggleModeButton.textContent = `連続測定モード: ${isContinuousMode ? 'オン' : 'オフ'}`;
-            if (!isContinuousMode) totalLength = 0;
         });
 
         horizontalModeButton.addEventListener('click', () => {
             isHorizontalMode = !isHorizontalMode;
+            isVerticalMode = false;
             horizontalModeButton.textContent = `水平モード: ${isHorizontalMode ? 'オン' : 'オフ'}`;
+            verticalModeButton.textContent = `垂直モード: オフ`;
         });
 
         verticalModeButton.addEventListener('click', () => {
             isVerticalMode = !isVerticalMode;
+            isHorizontalMode = false;
             verticalModeButton.textContent = `垂直モード: ${isVerticalMode ? 'オン' : 'オフ'}`;
+            horizontalModeButton.textContent = `水平モード: オフ`;
+        });
+
+        toggleMarkersButton.addEventListener('click', () => {
+            showMarkers = !showMarkers;
+            toggleMarkersButton.textContent = `印表示: ${showMarkers ? 'オン' : 'オフ'}`;
+            redraw();
+        });
+
+        colorPicker.addEventListener('input', () => {
+            currentColor = colorPicker.value;
+        });
+
+        undoButton.addEventListener('click', () => {
+            if (lines.length > 0) {
+                lines.pop();
+                const lastLabel = labels.pop();
+                if (lastLabel) lastLabel.remove();
+                redraw();
+
+                if (isContinuousMode && basePixelsPerMM) {
+                    totalLength = lines.reduce((sum, line) => sum + (line.length / basePixelsPerMM), 0);
+                }
+            }
         });
     </script>
 </body>
